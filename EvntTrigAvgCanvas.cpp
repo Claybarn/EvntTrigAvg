@@ -301,16 +301,17 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     int width=getWidth();
     int height=getHeight();
     g.setColour(Colours::snow);
-    int yFact = 2;
+    int yFact = -2;
     int xOffset= 20;
     int drawWidth = width-20-width/4;
     int drawHeight = 40;
     g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
     //g.drawText(<#const juce::String &text#>, <#int x#>, <#int y#>, <#int width#>, <#int height#>, <#juce::Justification justificationType#>)
     g.drawText("ID",5, 5, width/8, 20, juce::Justification::left);
-    g.drawText("Min.", 9*width/12, 5, 50, 20, juce::Justification::right);
-    g.drawText("Max", 10*width/12, 5, 50, 20, juce::Justification::right);
-    g.drawText("Mean", 11*width/12, 5, 50, 20, juce::Justification::right);
+    g.drawText("Trials: " + String(processor->getTTLTimestampBufferSize()),(xOffset+drawWidth)/2-30,5,60,20,Justification::centred);
+    g.drawText("Min.", 9*width/12, 5, 50, 20, Justification::right);
+    g.drawText("Max", 10*width/12, 5, 50, 20, Justification::right);
+    g.drawText("Mean", 11*width/12, 5, 50, 20, Justification::right);
     
     
     //HistoGraph(EvntTrigAvgCanvas* e, Colour c,float stats[3], std::vector<float> histoFactors);
@@ -325,7 +326,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
             
             //std::cout<<"height offset: " << drawHeight << "\n";
             //std::cout<<"point 1, point 2: " <<histoData[ID][i-1]+drawHeight*(ID+1) << ", " << histoData[ID][i]+drawHeight*ID<<"\n";
-            g.drawLine((i-1)*lineX+xOffset,-yFact*histoData[ID][i-1]+drawHeight*(ID+1),(i)*lineX+xOffset,-yFact*histoData[ID][i]+drawHeight*(ID+1));
+            g.drawLine((i-1)*lineX+xOffset,yFact*histoData[ID][i-1]+drawHeight*(ID+1),(i)*lineX+xOffset,yFact*histoData[ID][i]+drawHeight*(ID+1));
             g.drawText(String(ID+1), 5, drawHeight*(ID+1)-10, 15, 20, juce::Justification::left);
             g.drawText(String(minMaxMean[ID][0]), 9*width/12, drawHeight*(ID+1)-10, 50, 20, juce::Justification::right);
             g.drawText(String(minMaxMean[ID][1]), 10*width/12, drawHeight*(ID+1)-10, 50, 20, juce::Justification::right);

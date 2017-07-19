@@ -132,6 +132,17 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         //spikeInfoBuffer.push_back(spikeExtraction);
         
     }
+    Array<sourceChannelInfo> asdfag = newSpike->getChannelInfo()->getSourceChannelInfo();
+    const SpikeChannel* stuff = newSpike->getChannelInfo();
+    SpikeChannel::ElectrodeTypes asdf = stuff->getChannelType();
+    for(int i = 0 ; i < asdfag.size() ; i++){
+        std::cout<<"i: " << i << "\n";
+        std::cout<<"sorted ID: " << newSpike->getSortedID() << "\n";
+        std::cout<<"processorID: " <<asdfag[i].processorID<<"\n";
+        std::cout<< "subProcessorID: "<<asdfag[i].subProcessorID<<"\n";
+        std::cout<<"channelIDX: " <<asdfag[i].channelIDX<<"\n";
+    }
+
 }
 
 
@@ -256,14 +267,6 @@ uint64 EvntTrigAvg::getWindowSize(){
 }
 
 
-
-void EvntTrigAvg::setBinSize(int futureBinSize){
-    binSize = futureBinSize * 1000 / getSampleRate();
-}
-
-void EvntTrigAvg::setWindowSize(int futureWindowSize){
-    windowSize = futureWindowSize * 1000 / getSampleRate();
-}
 
 std::vector<std::vector<uint64>> EvntTrigAvg::getHistoData(){
         readHistoData=false;

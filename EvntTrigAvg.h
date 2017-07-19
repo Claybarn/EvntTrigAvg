@@ -93,11 +93,9 @@ public:
     std::vector<uint64> getTTLTimestampBuffer();
     unsigned long getSpikeInfoBufferSize();
     unsigned long getTTLTimestampBufferSize();
-    
     uint64 getWindowSize();
     uint64 getBinSize();
-    void setBinSize(int futureBinSize);
-    void setWindowSize(int futureWindowSize);
+
     //create histogram data
     std::vector<uint64> createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData);
     uint64 binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint);
