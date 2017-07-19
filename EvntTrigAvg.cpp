@@ -81,6 +81,9 @@ void EvntTrigAvg::process(AudioSampleBuffer& buffer){
     //std::cout<<"timestamp at end of buffer: " << buffer.getNumSamples() + getTimestamp(0)<<"\n";
    // if(ttlTimestampBuffer.size() > 0)
    //     std::cout<<"end of window " << ttlTimestampBuffer[lastTTLCalculated+1] + windowSize/2 <<"\n";
+    std::cout<<buffer.getNumChannels()<<"\n";
+    if(buffer.getNumChannels() != numChannels)
+        numChannels = buffer.getNumChannels();
     
     //std::cout<<"last TTL calc: " << lastTTLCalculated << "\n";
     if(ttlTimestampBuffer.size() > lastTTLCalculated && buffer.getNumSamples() + getTimestamp(0) >= ttlTimestampBuffer[lastTTLCalculated+1] + windowSize/2){ // collected all data to calculate spike timings in reference to TTL, and haven't already calculated this
@@ -123,7 +126,7 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         if(newSpike->getSortedID()>spikeData.size()){
             spikeData.resize(newSpike->getSortedID());
         }
-        spikeData[newSpike->getSortedID()-1].push_back(newSpike->getTimestamp());
+        spikeData[newSpike->getChannelInfo()->getSourceChannelInfo().channelIDX][newSpike->getSortedID()].push_back(newSpike->getTimestamp());
         
         // relic
         //struct spikeInfo spikeExtraction;
@@ -185,30 +188,26 @@ unsigned long EvntTrigAvg::getTTLTimestampBufferSize(){
 
 /** pass data into createHistogramData() by sortedID */
 // TODO modify so only new data is analyzed to save processing time/memory
-std::vector<std::vector<uint64>> EvntTrigAvg::processSpikeData(std::vector<std::vector<uint64>> spikeData,std::vector<uint64> ttlData){
+std::vector<std::vector<uint64>> EvntTrigAvg::processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData){
     //std::cout<<"processing spike data \n";
     std::vector<std::vector<uint64>> processedSpikeData;
-    for (int sortedIdIterator = 0 ; sortedIdIterator < spikeData.size() ; sortedIdIterator++){
-        
-        std::vector<uint64> toAdd = createHistogramData(spikeData[sortedIdIterator],ttlData);
-        
-        if(minMaxMean.size()<sortedIdIterator+1)
-            minMaxMean.resize(sortedIdIterator+1);
-
-        if(minMaxMean[sortedIdIterator].size()<3)
-            minMaxMean[sortedIdIterator].resize((3));
-        minMaxMean[sortedIdIterator][0]=findMin(toAdd);
-        minMaxMean[sortedIdIterator][1]=findMax(toAdd);
-        minMaxMean[sortedIdIterator][2]=findMean(toAdd);
-        for (int i = 0 ; i < toAdd.size() ; i++){
-            if (i >= processedSpikeData.size()){
-                processedSpikeData.resize(i+1);
+    for (int channelIterator = 0 ; channelIterator < numChannels ; channelIterator++)
+        for (int sortedIdIterator = 0 ; sortedIdIterator < spikeData.size() ; sortedIdIterator++){
+            std::vector<uint64> toAdd = createHistogramData(spikeData[channelIterator][sortedIdIterator],ttlData);
+            if(minMaxMean.size()<sortedIdIterator+1)
+                minMaxMean.resize(sortedIdIterator+1);
+            if(minMaxMean[sortedIdIterator].size()<3)
+                minMaxMean[sortedIdIterator].resize((3));
+            minMaxMean[sortedIdIterator][0]=findMin(toAdd);
+            minMaxMean[sortedIdIterator][1]=findMax(toAdd);
+            minMaxMean[sortedIdIterator][2]=findMean(toAdd);
+            for (int i = 0 ; i < toAdd.size() ; i++){
+                if (i >= processedSpikeData.size()){
+                    processedSpikeData.resize(i+1);
+                }
+                processedSpikeData[sortedIdIterator].push_back(toAdd[i]);
             }
-            processedSpikeData[sortedIdIterator].push_back(toAdd[i]);
-            
-        }
     }
-    
     return processedSpikeData;
 }
 

@@ -99,7 +99,7 @@ public:
     //create histogram data
     std::vector<uint64> createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData);
     uint64 binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint);
-    std::vector<std::vector<uint64>> processSpikeData(std::vector<std::vector<uint64>> spikeData,std::vector<uint64> ttlData);
+    std::vector<std::vector<uint64>> processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData);
     std::vector<uint64> binCount(std::vector<uint64> binData, uint64 numberOfBins);
     std::vector<std::vector<uint64>> getHistoData();
     bool shouldReadHistoData();
@@ -108,6 +108,7 @@ public:
     float findMean(std::vector<uint64> data);
     std::vector<std::vector<float>> getMinMaxMean();
 private:
+    int numChannels = 0;
     bool readHistoData = false;
     bool recalc = false;
     int lastTTLCalculated = 0;
@@ -117,7 +118,7 @@ private:
     spikeInfo* spikeExtraction;
     std::vector<spikeInfo> spikeInfoBuffer;
     std::vector<uint64> ttlTimestampBuffer;
-    std::vector<std::vector<uint64>> spikeData;
+    std::vector<std::vector<std::vector<uint64>>> spikeData;
     std::vector<std::vector<uint64>> histogramData;
     std::vector<std::vector<float>> minMaxMean;
     //float sampleRate = 0;

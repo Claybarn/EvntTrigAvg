@@ -308,7 +308,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
     //g.drawText(<#const juce::String &text#>, <#int x#>, <#int y#>, <#int width#>, <#int height#>, <#juce::Justification justificationType#>)
     g.drawText("ID",5, 5, width/8, 20, juce::Justification::left);
-    g.drawText("Trials: " + String(processor->getTTLTimestampBufferSize()),(xOffset+drawWidth)/2-30,5,60,20,Justification::centred);
+    g.drawText("Trials: " + String(processor->getTTLTimestampBufferSize()),(xOffset+drawWidth)/2-50,5,100,20,Justification::centred);
     g.drawText("Min.", 9*width/12, 5, 50, 20, Justification::right);
     g.drawText("Max", 10*width/12, 5, 50, 20, Justification::right);
     g.drawText("Mean", 11*width/12, 5, 50, 20, Justification::right);
