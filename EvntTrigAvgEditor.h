@@ -47,7 +47,7 @@ public:
     void comboBoxChanged(ComboBox* comboBox);
     void sliderEvent(Slider* slider);
     void channelChanged (int chan, bool newState) override;
-
+    void updateSettings();
     Visualizer* createNewCanvas();
     
     EvntTrigAvgCanvas* evntTrigAvgCanvas;
@@ -66,7 +66,13 @@ public:
 */
     
 private:
-
+    struct EventSources
+    {
+        unsigned int eventIndex;
+        unsigned int channel;
+    };
+    Array<EventSources> eventSourceArray;
+    
     //  ComboBox* electrodeTypes;
     EvntTrigAvg* processor;
     ScopedPointer<ComboBox> triggerChannel;

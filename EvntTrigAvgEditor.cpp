@@ -41,11 +41,9 @@ EvntTrigAvgEditor::EvntTrigAvgEditor(GenericProcessor* parentNode, bool useDefau
     triggerChannel = new ComboBox("triggerChannel");
     triggerChannel->addListener(this);
     triggerChannel->setBounds(100,30,80,20);
-    for (int i = 0; i < 16; i++)
-        triggerChannel->addItem(String(i+1),i+2); // start numbering at one for user-visible channels
-    triggerChannel->setTooltip("Select TTL channel to align data to");
-    triggerChannel->setSelectedId(4);
     addAndMakeVisible(triggerChannel);
+    triggerChannel->addItem("None",1);
+    triggerChannel->setSelectedId(1, sendNotification);
     
     binSize = new Label("binSize","bin size");
     binSize->setFont(Font("Default", 12, Font::plain));
@@ -123,16 +121,10 @@ void EvntTrigAvgEditor::buttonEvent(Button* button)
 
 void EvntTrigAvgEditor::labelTextChanged(Label* label)
 {
-    
     if (label == binSize)
-    {
-        processor->setParameter(1,label->getText().getIntValue());
-    }
-    else if (label == windowSize)
-    {
         processor->setParameter(2,label->getText().getIntValue());
-    }
-    
+    else if (label == windowSize)
+        processor->setParameter(3,label->getText().getIntValue());
 }
 
 
@@ -141,8 +133,58 @@ void EvntTrigAvgEditor::comboBoxChanged(ComboBox* comboBox)
     EvntTrigAvg* processor = (EvntTrigAvg*) getProcessor();
     std::cout<<"input channel changed to: " << comboBox->getText().getIntValue()-1 << "\n";
     processor->setParameter(0,comboBox->getText().getIntValue()-1);
+    
+    if (comboBox->getSelectedId() > 1)
+    {
+        int index = comboBox->getSelectedId() - 2;
+        //invalidate the input first to ensure there are no race conditions
+        processor->setParameter(0, -1);
+        processor->setParameter(1, eventSourceArray[index].channel);
+        processor->setParameter(0, eventSourceArray[index].eventIndex);
+    }
+    else
+        getProcessor()->setParameter(0, -1);
 }
 
 void EvntTrigAvgEditor::channelChanged (int chan, bool newState){
     
 }
+
+void EvntTrigAvgEditor::updateSettings()
+{
+    EventSources s;
+    String name;
+    int oldId = triggerChannel->getSelectedId();
+    triggerChannel->clear();
+    //GenericProcessor* processor = getProcessor();
+    triggerChannel->addItem("None", 1);
+    int nextItem = 2;
+    int nEvents = processor->getTotalEventChannels();
+    //int nEvents = processor->getTotalSpikeChannels();
+    for (int i = 0; i < nEvents; i++)
+    {
+        const EventChannel* event = processor->getEventChannel(i);
+        //const SpikeChannel* event = processor->getSpikeChannel(i);
+        if (event->getChannelType() == EventChannel::TTL)
+        {
+            s.eventIndex = i;
+            int nChans = event->getNumChannels();
+            for (int c = 0; c < nChans; c++)
+            {
+                s.channel = c;
+                name = event->getSourceName() + " (TTL" + String(c+1) + ")";
+                //name = event->getSourceName() + " (Spike" + String(c+1) + ")";
+
+                eventSourceArray.add(s);
+                triggerChannel->addItem(name, nextItem++);
+            }
+        }
+    }
+    if (oldId > triggerChannel->getNumItems())
+    {
+        oldId = 1;
+    }
+    triggerChannel->setSelectedId(oldId, sendNotification);
+}
+
+

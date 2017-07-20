@@ -108,13 +108,15 @@ public:
     float findMean(std::vector<uint64> data);
     std::vector<std::vector<float>> getMinMaxMean();
 private:
+    std::atomic<int> triggerEvent;
+    std::atomic<int> triggerChannel;
     int numChannels = 0;
     bool readHistoData = false;
     bool recalc = false;
     int lastTTLCalculated = 0;
     uint64 windowSize;
     uint64 binSize;
-    int triggerChannel = 3;
+    //int triggerChannel = 3;
     spikeInfo* spikeExtraction;
     std::vector<spikeInfo> spikeInfoBuffer;
     std::vector<uint64> ttlTimestampBuffer;

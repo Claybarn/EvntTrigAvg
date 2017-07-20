@@ -140,15 +140,35 @@ void EvntTrigAvgCanvas::refreshState()
 
 void EvntTrigAvgCanvas::resized()
 {
-    viewport->setBounds(0,0,getWidth(),getHeight());
-    display->setBounds(0,0,getWidth()-scrollBarThickness, getHeight());
-    std::cout<<"canvas child components: " << getNumChildComponents() << "\n";
+    
+    int xOffset= 20;
+    int yOffset = 50;
+    int drawWidth = getWidth()-20-getWidth()/4;
+    viewport->setBounds(xOffset,yOffset,getWidth(),getHeight());
+    display->setBounds(20,100,drawWidth, getHeight()-2*yOffset);
     repaint();
     //spikeDisplay->setBounds(0,0,getWidth()-140, spikeDisplay->getTotalHeight());
 }
 
 void EvntTrigAvgCanvas::paint(Graphics& g)
 {
+    
+    g.fillAll(Colours::black);
+    int width=getWidth();
+    int height=getHeight();
+    int drawWidth = width-20-width/4;
+    //int drawHeight = 40;
+    int xOffset= 20;
+    g.setColour(Colours::snow);
+    g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
+    //g.drawText(<#const juce::String &text#>, <#int x#>, <#int y#>, <#int width#>, <#int height#>, <#juce::Justification justificationType#>)
+    g.drawText("ID",5, 5, width/8, 20, juce::Justification::left);
+    g.drawText("Trials: " + String(processor->getTTLTimestampBufferSize()),(xOffset+drawWidth)/2-50,5,100,20,Justification::centred);
+    g.drawText("Min.", 9*width/12, 5, 50, 20, Justification::right);
+    g.drawText("Max", 10*width/12, 5, 50, 20, Justification::right);
+    g.drawText("Mean", 11*width/12, 5, 50, 20, Justification::right);
+    
+
     /*
     
     //if(processor->shouldReadHistoData()){
@@ -295,9 +315,10 @@ void EvntTrigAvgDisplay::resized()
 
 void EvntTrigAvgDisplay::paint(Graphics &g){
     //if(processor->shouldReadHistoData()){
+    g.fillAll(Colours::darkgrey);
     histoData = processor->getHistoData();
     minMaxMean = processor->getMinMaxMean();
-    g.fillAll(Colours::darkgrey);
+    
     int width=getWidth();
     int height=getHeight();
     g.setColour(Colours::snow);
@@ -305,6 +326,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     int xOffset= 20;
     int drawWidth = width-20-width/4;
     int drawHeight = 40;
+    /*
     g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
     //g.drawText(<#const juce::String &text#>, <#int x#>, <#int y#>, <#int width#>, <#int height#>, <#juce::Justification justificationType#>)
     g.drawText("ID",5, 5, width/8, 20, juce::Justification::left);
@@ -312,7 +334,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     g.drawText("Min.", 9*width/12, 5, 50, 20, Justification::right);
     g.drawText("Max", 10*width/12, 5, 50, 20, Justification::right);
     g.drawText("Mean", 11*width/12, 5, 50, 20, Justification::right);
-    
+    */
     
     //HistoGraph(EvntTrigAvgCanvas* e, Colour c,float stats[3], std::vector<float> histoFactors);
     //deleteAllChildren();

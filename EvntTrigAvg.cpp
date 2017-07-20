@@ -51,10 +51,12 @@ EvntTrigAvg::~EvntTrigAvg()
 
 void EvntTrigAvg::setParameter(int parameterIndex, float newValue){
     if (parameterIndex == 0)
-        triggerChannel = newValue;
-    else if(parameterIndex == 1)
-        binSize = newValue/(getSampleRate()/1000);
+        triggerEvent = static_cast<int>(newValue);
+    else if (parameterIndex == 1)
+        triggerChannel = static_cast<int>(newValue);
     else if(parameterIndex == 2)
+        binSize = newValue/(getSampleRate()/1000);
+    else if(parameterIndex == 3)
         windowSize = newValue/(getSampleRate()/1000);
 }
 
@@ -81,7 +83,7 @@ void EvntTrigAvg::process(AudioSampleBuffer& buffer){
     //std::cout<<"timestamp at end of buffer: " << buffer.getNumSamples() + getTimestamp(0)<<"\n";
    // if(ttlTimestampBuffer.size() > 0)
    //     std::cout<<"end of window " << ttlTimestampBuffer[lastTTLCalculated+1] + windowSize/2 <<"\n";
-    std::cout<<buffer.getNumChannels()<<"\n";
+    //std::cout<<buffer.getNumChannels()<<"\n";
     if(buffer.getNumChannels() != numChannels)
         numChannels = buffer.getNumChannels();
     
@@ -113,8 +115,17 @@ void EvntTrigAvg::process(AudioSampleBuffer& buffer){
 
 void EvntTrigAvg::handleEvent(const EventChannel* eventInfo, const MidiMessage& event, int sampleNum){
     //std::cout<<"recieved event on: " << event.getChannel() << "\n";
-    if (Event::getEventType(event) == EventChannel::TTL && event.getChannel() == triggerChannel){
+    if (triggerEvent < 0) return;
+    /*
+    else if (Event::getEventType(event) == EventChannel::TTL && event.getChannel() == triggerChannel){
         ttlTimestampBuffer.push_back(Event::getTimestamp(event));
+    }
+    */
+    else if (eventInfo->getChannelType() == EventChannel::TTL && eventInfo == eventChannelArray[triggerEvent])
+    {
+        TTLEventPtr ttl = TTLEvent::deserializeFromMessage(event, eventInfo);
+        if (ttl->getChannel() == triggerChannel)
+            ttlTimestampBuffer.push_back(Event::getTimestamp(event));
     }
 }
 
@@ -126,24 +137,23 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         if(newSpike->getSortedID()>spikeData.size()){
             spikeData.resize(newSpike->getSortedID());
         }
-        spikeData[newSpike->getChannelInfo()->getSourceChannelInfo().channelIDX][newSpike->getSortedID()].push_back(newSpike->getTimestamp());
-        
-        // relic
-        //struct spikeInfo spikeExtraction;
-        //spikeExtraction.sortedID=newSpike->getSortedID();
-        //spikeExtraction.timestamp=newSpike->getTimestamp();
-        //spikeInfoBuffer.push_back(spikeExtraction);
+        // what do the indices in Array<sourceChannelInfo> mean?? Think mean channel of what electrode (ie tetrode will be length of 4, stereo length of 2
+        Array<sourceChannelInfo> chanInfoArray = newSpike->getChannelInfo()->getSourceChannelInfo();
+        spikeData[chanInfoArray[0].channelIDX][newSpike->getSortedID()].push_back(newSpike->getTimestamp());
         
     }
-    Array<sourceChannelInfo> asdfag = newSpike->getChannelInfo()->getSourceChannelInfo();
-    const SpikeChannel* stuff = newSpike->getChannelInfo();
-    SpikeChannel::ElectrodeTypes asdf = stuff->getChannelType();
-    for(int i = 0 ; i < asdfag.size() ; i++){
+    
+    const SpikeChannel* channelInfo = newSpike->getChannelInfo();
+    
+    Array<sourceChannelInfo> sourceChannelInfo = newSpike->getChannelInfo()->getSourceChannelInfo();
+    
+    SpikeChannel::ElectrodeTypes asdf = channelInfo->getChannelType();
+    for(int i = 0 ; i < sourceChannelInfo.size() ; i++){
         std::cout<<"i: " << i << "\n";
         std::cout<<"sorted ID: " << newSpike->getSortedID() << "\n";
-        std::cout<<"processorID: " <<asdfag[i].processorID<<"\n";
-        std::cout<< "subProcessorID: "<<asdfag[i].subProcessorID<<"\n";
-        std::cout<<"channelIDX: " <<asdfag[i].channelIDX<<"\n";
+        std::cout<<"processorID: " <<sourceChannelInfo[i].processorID<<"\n";
+        std::cout<< "subProcessorID: "<<sourceChannelInfo[i].subProcessorID<<"\n";
+        std::cout<<"channelIDX: " <<sourceChannelInfo[i].channelIDX<<"\n";
     }
 
 }
