@@ -31,10 +31,7 @@
 
 /**
 
-  Displays spike waveforms and projections for Spike Sorter
-
-  @see SpikeDisplayNode, SpikeDisplayEditor, Visualizer
-
+ 
 */
 
 class EvntTrigAvgDisplay;
@@ -80,14 +77,15 @@ private:
     std::vector<std::vector<float>> minMaxMean;
     void removeUnitOrBox();
     ScopedPointer<Viewport> viewport;
-  //  SpikeObject spike;
+    ScopedPointer<EvntTrigAvgDisplay> display;
+    ScopedPointer<UtilityButton> clearHisto;
+    //  SpikeObject spike;
     int scrollBarThickness;
     int border = 20;
-    
     int triggerChannel = NULL;
     unsigned long spikeBufferSize = 0;
     unsigned long ttlBufferSize = 0;
-    ScopedPointer<EvntTrigAvgDisplay> display;
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EvntTrigAvgCanvas);
 
 };

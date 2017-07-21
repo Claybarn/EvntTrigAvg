@@ -107,6 +107,9 @@ public:
     int findMax(std::vector<uint64> data);
     float findMean(std::vector<uint64> data);
     std::vector<std::vector<float>> getMinMaxMean();
+    std::vector<int> createElectrodeMap();
+    std::vector<String> createElectrodeLabels();
+    std::vector<String> getElectrodeLabels();
 private:
     std::atomic<int> triggerEvent;
     std::atomic<int> triggerChannel;
@@ -123,6 +126,8 @@ private:
     std::vector<std::vector<std::vector<uint64>>> spikeData;
     std::vector<std::vector<uint64>> histogramData;
     std::vector<std::vector<float>> minMaxMean;
+    std::vector<int> electrodeMap;
+    std::vector<String> electrodeLabels;
     //float sampleRate = 0;
     //float defaultSampleRate = getDefaultSampleRate();
     

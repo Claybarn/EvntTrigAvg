@@ -50,24 +50,41 @@ EvntTrigAvg::~EvntTrigAvg()
 }
 
 void EvntTrigAvg::setParameter(int parameterIndex, float newValue){
-    if (parameterIndex == 0)
+    bool changed = false;
+    if (parameterIndex == 0 && triggerEvent != static_cast<int>(newValue)){
         triggerEvent = static_cast<int>(newValue);
-    else if (parameterIndex == 1)
+        changed = true;
+    }
+    else if (parameterIndex == 1 && triggerChannel != static_cast<int>(newValue)){
         triggerChannel = static_cast<int>(newValue);
-    else if(parameterIndex == 2)
+        changed = true;
+    }
+    else if(parameterIndex == 2 && binSize != newValue/(getSampleRate()/1000)){
         binSize = newValue/(getSampleRate()/1000);
-    else if(parameterIndex == 3)
+        changed = true;
+    }
+    else if(parameterIndex == 3 && windowSize != newValue/(getSampleRate()/1000)){
         windowSize = newValue/(getSampleRate()/1000);
+        changed = true;
+    }
+    else if (parameterIndex == 4)
+        changed = true;
+    // If anything was changed, delete all data and start over
+    if (changed){
+        spikeData.clear();
+        spikeData.resize(getTotalSpikeChannels());
+        minMaxMean.clear();
+    }
+    
 }
 
 void EvntTrigAvg::updateSettings(){
+    electrodeMap.clear();
+    electrodeMap = createElectrodeMap();
+    electrodeLabels.clear();
+    electrodeLabels = createElectrodeLabels();
+    
 }
-
-/*
-bool EvntTrigAvg::isReady(){
-    return true;
-}
-*/
 
 bool EvntTrigAvg::enable(){
     return true;
@@ -86,7 +103,6 @@ void EvntTrigAvg::process(AudioSampleBuffer& buffer){
     //std::cout<<buffer.getNumChannels()<<"\n";
     if(buffer.getNumChannels() != numChannels)
         numChannels = buffer.getNumChannels();
-    
     //std::cout<<"last TTL calc: " << lastTTLCalculated << "\n";
     if(ttlTimestampBuffer.size() > lastTTLCalculated && buffer.getNumSamples() + getTimestamp(0) >= ttlTimestampBuffer[lastTTLCalculated+1] + windowSize/2){ // collected all data to calculate spike timings in reference to TTL, and haven't already calculated this
         // != std::distance(ttlTimestampBuffer.begin(),ttlTimestampBuffer.end())
@@ -111,6 +127,8 @@ void EvntTrigAvg::process(AudioSampleBuffer& buffer){
         recalc=false;
         readHistoData=true;
     }
+    
+    
 }
 
 void EvntTrigAvg::handleEvent(const EventChannel* eventInfo, const MidiMessage& event, int sampleNum){
@@ -131,30 +149,52 @@ void EvntTrigAvg::handleEvent(const EventChannel* eventInfo, const MidiMessage& 
 
 void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& event, int samplePosition){
     SpikeEventPtr newSpike = SpikeEvent::deserializeFromMessage(event, spikeInfo);
+    int numSpikeChannels = getTotalSpikeChannels();
+    std::cout<<"totalSpikeChannels: " << numSpikeChannels << "\n";
+    for (int chanIterator = 0 ; chanIterator < numSpikeChannels ; chanIterator++){
+        const SpikeChannel* chan = getSpikeChannel(chanIterator);
+        std::cout<<"channel type: " << chan->getChannelType() << "\n";
+        std::cout<<"number of channels : " << chan->getNumChannels() << "\n";
+        for(int blah = 0 ; blah < chan->getSourceChannelInfo().size() ; blah++){
+            std::cout<<"index of sourceChannelInfo: " << blah << "\n";
+            std::cout<<"processorID: " <<chan->getSourceChannelInfo()[blah].processorID<<"\n";
+            std::cout<< "subProcessorID: "<<chan->getSourceChannelInfo()[blah].subProcessorID<<"\n";
+            std::cout<<"channelIDX: " <<chan->getSourceChannelInfo()[blah].channelIDX<<"\n";
+            std::cout<<"\n";
+        }
+        std::cout<<"\n";
+    }
+
     if (!newSpike)
         return;
     else if(newSpike->getSortedID()>0){
         if(newSpike->getSortedID()>spikeData.size()){
             spikeData.resize(newSpike->getSortedID());
         }
+        
         // what do the indices in Array<sourceChannelInfo> mean?? Think mean channel of what electrode (ie tetrode will be length of 4, stereo length of 2
         Array<sourceChannelInfo> chanInfoArray = newSpike->getChannelInfo()->getSourceChannelInfo();
-        spikeData[chanInfoArray[0].channelIDX][newSpike->getSortedID()].push_back(newSpike->getTimestamp());
+        // NEED TO FIX
+        //spikeData[chanInfoArray[0].channelIDX][newSpike->getSortedID()].push_back(newSpike->getTimestamp());
         
     }
-    
+        /*
     const SpikeChannel* channelInfo = newSpike->getChannelInfo();
-    
     Array<sourceChannelInfo> sourceChannelInfo = newSpike->getChannelInfo()->getSourceChannelInfo();
-    
-    SpikeChannel::ElectrodeTypes asdf = channelInfo->getChannelType();
+    //returns int getSpikeChannelIndex(<#int channelIdx#>, <#int processorID#>)
     for(int i = 0 ; i < sourceChannelInfo.size() ; i++){
         std::cout<<"i: " << i << "\n";
         std::cout<<"sorted ID: " << newSpike->getSortedID() << "\n";
         std::cout<<"processorID: " <<sourceChannelInfo[i].processorID<<"\n";
         std::cout<< "subProcessorID: "<<sourceChannelInfo[i].subProcessorID<<"\n";
         std::cout<<"channelIDX: " <<sourceChannelInfo[i].channelIDX<<"\n";
+        std::cout<<"spikeChannelIndex: " << getSpikeChannelIndex(sourceChannelInfo[i].channelIDX, sourceChannelInfo[i].processorID)<<"\n";
+        const SpikeChannel* var = getSpikeChannel(getSpikeChannelIndex(sourceChannelInfo[i].channelIDX, sourceChannelInfo[i].processorID));
+        //std::cout<<"name: " << channelInfo->getC << "\n";
+     
+        
     }
+     */
 
 }
 
@@ -194,6 +234,44 @@ unsigned long EvntTrigAvg::getSpikeInfoBufferSize(){
 unsigned long EvntTrigAvg::getTTLTimestampBufferSize(){
     return ttlTimestampBuffer.size();
 }
+
+/** creates map to convert channelIDX to electrode type and number */
+std::vector<int> EvntTrigAvg::createElectrodeMap(){
+    std::vector<int> map;
+    int numSpikeChannels = getTotalSpikeChannels();
+    int electrodeCounter=0;
+    for (int chanIt = 0 ; chanIt < numSpikeChannels ; chanIt++){
+        const SpikeChannel* chan = getSpikeChannel(chanIt);
+        // add to running count of each electrode
+        map.resize(map.size()+chan->getNumChannels());
+        Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo();
+        for (int subChanIt = 0 ; subChanIt < chan->getNumChannels() ; chanIt++){
+            map[chanInfo[subChanIt].channelIDX] = electrodeCounter;
+        }
+        electrodeCounter+=1;
+    }
+    return map;
+}
+
+
+std::vector<String> EvntTrigAvg::createElectrodeLabels(){
+    std::vector<String> map;
+    int numSpikeChannels = getTotalSpikeChannels();
+    map.resize(numSpikeChannels);
+    String electrodeNames[3]{"SI","ST","TT"};
+    int electrodeCounter[3]{0};
+
+    for (int chanIt = 0 ; chanIt < numSpikeChannels ; chanIt++){
+        const SpikeChannel* chan = getSpikeChannel(chanIt);
+        // add to running count of each electrode
+        int chanType = chan->getChannelType();
+        electrodeCounter[chanType]+=1;
+        map[chanIt]=electrodeNames[chanType]+String(electrodeCounter[chanType]);
+    }
+    return map;
+}
+
+ 
 
 
 /** pass data into createHistogramData() by sortedID */
@@ -318,4 +396,8 @@ float EvntTrigAvg::findMean(std::vector<uint64> data){
 
 std::vector<std::vector<float>> EvntTrigAvg::getMinMaxMean(){
     return minMaxMean;
+}
+
+std::vector<String> EvntTrigAvg::getElectrodeLabels(){
+    return electrodeLabels;
 }
