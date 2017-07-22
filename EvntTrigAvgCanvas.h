@@ -35,7 +35,12 @@
 */
 
 class EvntTrigAvgDisplay;
+class GraphUnit;
+class LabelDisplay;
 class HistoGraph;
+class StatDisplay;
+
+
 class EvntTrigAvgCanvas : public Visualizer, public Button::Listener
 
 {
@@ -115,11 +120,43 @@ private:
     int border = 20;
 };
 
+//---------------------------
+
+class GraphUnit : public Component
+{
+public:
+    GraphUnit(juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f);
+    ~GraphUnit();
+    void paint(Graphics& g);
+    void resized();
+private:
+    LabelDisplay* LD;
+    HistoGraph* HG;
+    StatDisplay* SD;
+    Colour color;
+};
+
+//---------------------------
+
+class LabelDisplay : public Component
+{
+public:
+    LabelDisplay(Colour color,String n);
+    ~LabelDisplay();
+    void paint(Graphics& g);
+    void resized();
+private:
+    Colour color;
+    String name;
+};
+
+//---------------------------
+
 class HistoGraph : public Component
 {
     
 public:
-    HistoGraph(EvntTrigAvgCanvas* e, juce::Colour c,std::vector<float> s, std::vector<uint64> h);
+    HistoGraph(juce::Colour c, std::vector<uint64> h);
     ~HistoGraph();
     
     void paint(Graphics& g);
@@ -129,23 +166,31 @@ public:
     void deselect();
     void clear();
     
-    EvntTrigAvgCanvas* canvas;
-    Colour color;
-    std::vector<uint64> histoData;
-    std::vector<float> stats;
     
     
     //void buttonClicked(Button* button);
     
 private:
+    Colour color;
+    std::vector<uint64> histoData;
     
-   
-    String name;
-    
-    Font font;
-    
-   
     
 };
+
+//---------------------------
+
+class StatDisplay : public Component
+{
+public:
+    StatDisplay(std::vector<float> s);
+    ~StatDisplay();
+    void paint(Graphics& g);
+    void resized();
+private:
+    Colour color;
+    std::vector<float> stats;
+    
+};
+
 
 #endif  // EvntTrigAvgCANVAS_H_

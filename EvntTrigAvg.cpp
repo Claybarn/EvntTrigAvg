@@ -137,6 +137,8 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         int electrode = electrodeMap[chanIDX];
         if (sortedID+1>spikeData[electrode].size()){
             spikeData[electrode].resize(sortedID+1);
+        }
+        if (sortedID+1>minMaxMean[electrode].size()){
             minMaxMean[electrode].resize(sortedID+1);
             minMaxMean[electrode][sortedID]={0,0,0};
         }
@@ -233,7 +235,7 @@ std::vector<std::vector<std::vector<uint64>>> EvntTrigAvg::processSpikeData(std:
     //std::cout<<"processing spike data \n";
     std::vector<std::vector<std::vector<uint64>>> processedSpikeData;
     processedSpikeData.resize(spikeData.size());
-    for (int channelIterator = 0 ; channelIterator < numChannels ; channelIterator++){
+    for (int channelIterator = 0 ; channelIterator < getTotalSpikeChannels() ; channelIterator++){
         processedSpikeData[channelIterator].resize(spikeData[channelIterator].size());
         for (int sortedIdIterator = 0 ; sortedIdIterator < spikeData[channelIterator].size() ; sortedIdIterator++){
             if(spikeData[channelIterator][sortedIdIterator].size()>0){
