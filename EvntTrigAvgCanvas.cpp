@@ -319,22 +319,29 @@ GraphUnit::GraphUnit(juce::Colour c, String n, std::vector<float> s, std::vector
     color = c;
     LD = new LabelDisplay(c,n);
     LD->setBounds(0,0,20,40);
-    addAndMakeVisible(LD);
+    addAndMakeVisible(LD,false);
     HG = new HistoGraph(c, f);
-    HG-setBounds(20,0,getWidth()-20-60, 40);
-    addAndMakeVisible(HG);
+    HG->setBounds(0,0,20,40);
+    addAndMakeVisible(HG,false);
     SD = new StatDisplay(c,s);
-    SD->setBounds(getWidth-60,0,60,40);
-    addAndMakeVisible(sD);
+    SD->setBounds(getWidth()-60,0,60,40);
+    addAndMakeVisible(SD,false);
 }
 GraphUnit::~GraphUnit(){
-    
+    deleteAllChildren();
 }
 void GraphUnit::paint(Graphics& g){
-    
+    g.setColour(Colours::snow);
+    g.setOpacity(0.3);
+    g.drawVerticalLine(getWidth()/2, getHeight(), 0);
+    g.setOpacity(0);
 }
 void GraphUnit::resized(){
-    
+    LD->setBounds(0,0,20,40);
+    HG->setBounds(0,0,20,40);
+    SD->setBounds(getWidth()-60,0,60,40);
+
+
 }
 //----------------
 
@@ -364,21 +371,10 @@ HistoGraph::~HistoGraph(){
 }
 
 void HistoGraph::paint(Graphics& g){
-    int width = getWidth();
-    int height = getHeight();
-    
     g.setColour(color);
     for (int i = 1 ; i < histoData.size() ; i++){
-        g.drawLine((i-1)*width/histoData.size(),getHeight()-histoData.operator[](i-1),(i)*width/histoData.size(),getHeight()-histoData.operator[](i));
+        g.drawLine((i-1)*getWidth()/histoData.size(),getHeight()-histoData.operator[](i-1),(i)*getWidth()/histoData.size(),getHeight()-histoData.operator[](i));
     }
-    auto size = stats.size();
-    if (size>0){
-        //g.drawText(String(stats->operator[](0)), 9*width/12,0, width/8, 20, juce::Justification::left);
-        //g.drawText(String(stats->operator[](1)), 10*width/12,0, width/8, 20, juce::Justification::left);
-        //g.drawText(String(stats->operator[](2)), 11*width/12, 0, width/8, 20, juce::Justification::left);
-        //std::cout<<"inside if with stats size = " << size << "\n";
-    }
-    //std::cout<<"painted histograph \n";
 }
 
 void HistoGraph::resized(){
@@ -399,8 +395,9 @@ void HistoGraph::clear(){
 
 //----------------
 
-StatDisplay::StatDisplay(juce::Colour c,std::vector<float> s){
+StatDisplay::StatDisplay(juce::Colour c, std::vector<float> s){
     color = c;
+    stats = s;
 }
 
 StatDisplay::~StatDisplay(){
@@ -408,8 +405,11 @@ StatDisplay::~StatDisplay(){
 }
 
 void StatDisplay::paint(Graphics& g){
-    
-}
+    g.setColour(color);
+    g.drawText(String(stats[0]),0, 0, 20, 40, juce::Justification::right);
+    g.drawText(String(stats[1]),20, 0, 20, 40, juce::Justification::right);
+    g.drawText(String(stats[2]),40, 0, 20, 40, juce::Justification::right);
+    }
 
 void StatDisplay::resized(){
     

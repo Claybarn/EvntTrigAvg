@@ -182,7 +182,7 @@ private:
 class StatDisplay : public Component
 {
 public:
-    StatDisplay(std::vector<float> s);
+    StatDisplay(juce::Colour c, std::vector<float> s);
     ~StatDisplay();
     void paint(Graphics& g);
     void resized();
