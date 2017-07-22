@@ -130,11 +130,6 @@ void EvntTrigAvgEditor::labelTextChanged(Label* label)
 
 void EvntTrigAvgEditor::comboBoxChanged(ComboBox* comboBox)
 {
-    /*
-    EvntTrigAvg* processor = (EvntTrigAvg*) getProcessor();
-    std::cout<<"input channel changed to: " << comboBox->getText().getIntValue()-1 << "\n";
-    processor->setParameter(0,comboBox->getText().getIntValue()-1);
-    */
     if (comboBox->getSelectedId() > 1)
     {
         int index = comboBox->getSelectedId() - 2;

@@ -261,9 +261,9 @@ void EvntTrigAvgDisplay::viewedComponentChanged (Component* newComponent){
 void EvntTrigAvgDisplay::resized()
 {
     int width = getWidth();
-    for(int i = 0 ; i < histograms.size() ; i++){
-        histograms[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
-        histograms[i]->resized();
+    for(int i = 0 ; i < graphs.size() ; i++){
+        graphs[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
+        graphs[i]->resized();
     }
 }
 
@@ -279,11 +279,11 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     int xOffset= 20;
     int drawWidth = width-20-width/4;
     int drawHeight = 40;
-    g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
+    //g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
     std::vector<String> labels = processor->getElectrodeLabels();
+    /*
     for (int electrode = 0 ; electrode < histoData.size() ; electrode++){
-        for(int sortedID = 0 ; sortedID < histoData[electrode].size() ; sortedID++)
-        {
+        for(int sortedID = 0 ; sortedID < histoData[electrode].size() ; sortedID++){
             int lineX= drawWidth/(histoData[electrode][sortedID].size()-1);
             for (int i = 1 ; i < histoData[electrode][sortedID].size() ; i++){
                 g.setColour(channelColours[(sortedID+16)%16]);
@@ -292,24 +292,26 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
             g.drawText(String(minMaxMean[electrode][sortedID][0]), 9*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
             g.drawText(String(minMaxMean[electrode][sortedID][1]), 10*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
             g.drawText(String(minMaxMean[electrode][sortedID][2]), 11*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
-            deleteAllChildren();
-            histograms.clear();
-            for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
-                for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
-                    HistoGraph* histogram = new HistoGraph(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
-                    histograms.add(histogram);
-                    histogram->setBounds(20, 40*(channelIt+sortedId+1), width-20, 40);
-                    addAndMakeVisible(histogram,false);
-                }
-            }
+            
+        }
+     }
+     */
+    deleteAllChildren();
+    graphs.clear();
+    for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
+        for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
+            GraphUnit* graph = new GraphUnit(channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+            graphs.add(graph);
+            graph->setBounds(20, 40*(channelIt+sortedId+1), width-20, 40);
+            addAndMakeVisible(graph,false);
         }
     }
     repaint();
 }
 
 void EvntTrigAvgDisplay::refresh(){
-    for (int i = 0 ; i < histograms.size() ; i++){
-        histograms[i]->repaint();
+    for (int i = 0 ; i < graphs.size() ; i++){
+        graphs[i]->repaint();
     }
 }
 
@@ -332,13 +334,13 @@ GraphUnit::~GraphUnit(){
 }
 void GraphUnit::paint(Graphics& g){
     g.setColour(Colours::snow);
-    g.setOpacity(0.3);
+    g.setOpacity(0.7);
     g.drawVerticalLine(getWidth()/2, getHeight(), 0);
-    g.setOpacity(0);
+    g.setOpacity(1);
 }
 void GraphUnit::resized(){
     LD->setBounds(0,0,20,40);
-    HG->setBounds(0,0,20,40);
+    HG->setBounds(0,0,getWidth()-80,40);
     SD->setBounds(getWidth()-60,0,60,40);
 
 
@@ -353,7 +355,8 @@ LabelDisplay::~LabelDisplay(){
     
 }
 void LabelDisplay::paint(Graphics& g){
-    
+    g.setColour(color);
+    g.drawText(name,0, 0, 20, 40, juce::Justification::right);
 }
 void LabelDisplay::resized(){
     

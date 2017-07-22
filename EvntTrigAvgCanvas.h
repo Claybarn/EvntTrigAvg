@@ -113,7 +113,7 @@ private:
     EvntTrigAvg* processor;
     EvntTrigAvgCanvas* canvas;
     Viewport* viewport;
-    Array<HistoGraph*> histograms;
+    Array<GraphUnit*> graphs;
     juce::Colour channelColours[16];
     std::vector<std::vector<std::vector<uint64>>> histoData;
     std::vector<std::vector<std::vector<float>>> minMaxMean;
