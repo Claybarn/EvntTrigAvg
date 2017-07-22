@@ -151,8 +151,8 @@ void EvntTrigAvgCanvas::resized()
     int xOffset= 40;
     int yOffset = 50;
     int drawWidth = getWidth()-20-getWidth()/4;
-    viewport->setBounds(xOffset,yOffset,getWidth(),getHeight());
-    display->setBounds(20,100,drawWidth, getHeight()-2*yOffset);
+    viewport->setBounds(0,yOffset,getWidth(),getHeight());
+    display->setBounds(0,100,getWidth(), getHeight()-2*yOffset);
     repaint();
     //spikeDisplay->setBounds(0,0,getWidth()-140, spikeDisplay->getTotalHeight());
 }
@@ -321,6 +321,7 @@ void EvntTrigAvgDisplay::resized()
 {
     int width = getWidth();
     for(int i = 0 ; i < histograms.size() ; i++){
+        std::cout<<"bounds for histogram" << i << ": " << 20 << " " << 40*(i+1) << " "<< width-20-width/4 << " " << 40 << "\n";
         histograms[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
         histograms[i]->resized();
     }
@@ -354,7 +355,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     std::vector<String> labels = processor->getElectrodeLabels();
     
     // Will need to convert ID system into electrode system
-    std::cout<<"histodata size: " << histoData.size() << "\n";
+    ;
     for (int electrode = 0 ; electrode < histoData.size() ; electrode++){
         for(int sortedID = 0 ; sortedID < histoData[electrode].size() ; sortedID++)
         {
@@ -365,22 +366,27 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
                 
                 //std::cout<<"height offset: " << drawHeight << "\n";
                 //std::cout<<"point 1, point 2: " <<histoData[ID][i-1]+drawHeight*(ID+1) << ", " << histoData[ID][i]+drawHeight*ID<<"\n";
-                g.drawLine((i-1)*lineX+xOffset,yFact*histoData[electrode][sortedID][i-1]+drawHeight*(sortedID+1),(i)*lineX+xOffset,yFact*histoData[electrode][sortedID][i]+drawHeight*(sortedID+1));
+                //g.drawLine((i-1)*lineX+xOffset,yFact*histoData[electrode][sortedID][i-1]+drawHeight*(sortedID+1),(i)*lineX+xOffset,yFact*histoData[electrode][sortedID][i]+drawHeight*(sortedID+1));
             }
             g.drawText(labels[electrode], 5, drawHeight*(electrode+1)-10, 15, 20, juce::Justification::left);
             g.drawText(String(minMaxMean[electrode][sortedID][0]), 9*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
             g.drawText(String(minMaxMean[electrode][sortedID][1]), 10*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
             g.drawText(String(minMaxMean[electrode][sortedID][2]), 11*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
-            /* not working well
-            for (int ID = 1 ; ID < histoData.size() ; ID++){
-            std::cout<<"adding histo graph \n";
-            HistoGraph* histogram = new HistoGraph(canvas,channelColours[(ID+sizeof(channelColours))%(sizeof(channelColours))],minMaxMean[ID],histoData[ID]);
-            //std::cout<<"real histo data size: " << histoData[ID].size() << "\n";
-            histograms.add(histogram);
-            addAndMakeVisible(histogram);
-            std::cout<<"display child components: " << getNumChildComponents() << "\n";
-            histogram->paint(g);
-             */
+            deleteAllChildren();
+            histograms.clear();
+            for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
+                for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
+                    std::cout<<"adding histo graph \n";
+                        ///HistoGraph(EvntTrigAvgCanvas* e, juce::Colour c,std::vector<float> s, std::vector<uint64> h);
+                    HistoGraph* histogram = new HistoGraph(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+                    //std::cout<<"real histo data size: " << histoData[ID].size() << "\n";
+                    histograms.add(histogram);
+                    histogram->setBounds(20, 40*(channelIt+sortedId+1), width-20, 40);
+                    addAndMakeVisible(histogram,false);
+                    //histogram->paint(g);
+                }
+            }
+            
         }
     }
     /*
