@@ -170,7 +170,7 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
     g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
     //g.drawText(<#const juce::String &text#>, <#int x#>, <#int y#>, <#int width#>, <#int height#>, <#juce::Justification justificationType#>)
     g.drawText("Electrode",5, 5, width/8, 20, juce::Justification::left);
-    g.drawText("Wire",25, 5, width/8, 20, juce::Justification::left);
+    //g.drawText("Wire",25, 5, width/8, 20, juce::Justification::left);
     g.drawText("Trials: " + String(processor->getTTLTimestampBufferSize()),(xOffset+drawWidth)/2-50,5,100,20,Justification::centred);
     g.drawText("Min.", 9*width/12, 5, 50, 20, Justification::right);
     g.drawText("Max", 10*width/12, 5, 50, 20, Justification::right);
@@ -331,7 +331,6 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     g.fillAll(Colours::darkgrey);
     histoData = processor->getHistoData();
     minMaxMean = processor->getMinMaxMean();
-    
     int width=getWidth();
     int height=getHeight();
     g.setColour(Colours::snow);
@@ -355,31 +354,34 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     std::vector<String> labels = processor->getElectrodeLabels();
     
     // Will need to convert ID system into electrode system
-    
-    for (int ID = 0 ; ID < histoData.size() ; ID++){
-        int lineX= drawWidth/(histoData[ID].size()-1)
-        for (int i = 1 ; i < histoData[ID].size() ; i++){
-            g.setColour(channelColours[(ID+16)%16]);
-            
-            
-            //std::cout<<"height offset: " << drawHeight << "\n";
-            //std::cout<<"point 1, point 2: " <<histoData[ID][i-1]+drawHeight*(ID+1) << ", " << histoData[ID][i]+drawHeight*ID<<"\n";
-            g.drawLine((i-1)*lineX+xOffset,yFact*histoData[ID][i-1]+drawHeight*(ID+1),(i)*lineX+xOffset,yFact*histoData[ID][i]+drawHeight*(ID+1));
+    std::cout<<"histodata size: " << histoData.size() << "\n";
+    for (int electrode = 0 ; electrode < histoData.size() ; electrode++){
+        for(int sortedID = 0 ; sortedID < histoData[electrode].size() ; sortedID++)
+        {
+            int lineX= drawWidth/(histoData[electrode][sortedID].size()-1);
+            for (int i = 1 ; i < histoData[electrode][sortedID].size() ; i++){
+                g.setColour(channelColours[(sortedID+16)%16]);
+                
+                
+                //std::cout<<"height offset: " << drawHeight << "\n";
+                //std::cout<<"point 1, point 2: " <<histoData[ID][i-1]+drawHeight*(ID+1) << ", " << histoData[ID][i]+drawHeight*ID<<"\n";
+                g.drawLine((i-1)*lineX+xOffset,yFact*histoData[electrode][sortedID][i-1]+drawHeight*(sortedID+1),(i)*lineX+xOffset,yFact*histoData[electrode][sortedID][i]+drawHeight*(sortedID+1));
+            }
+            g.drawText(labels[electrode], 5, drawHeight*(electrode+1)-10, 15, 20, juce::Justification::left);
+            g.drawText(String(minMaxMean[electrode][sortedID][0]), 9*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
+            g.drawText(String(minMaxMean[electrode][sortedID][1]), 10*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
+            g.drawText(String(minMaxMean[electrode][sortedID][2]), 11*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
+            /* not working well
+            for (int ID = 1 ; ID < histoData.size() ; ID++){
+            std::cout<<"adding histo graph \n";
+            HistoGraph* histogram = new HistoGraph(canvas,channelColours[(ID+sizeof(channelColours))%(sizeof(channelColours))],minMaxMean[ID],histoData[ID]);
+            //std::cout<<"real histo data size: " << histoData[ID].size() << "\n";
+            histograms.add(histogram);
+            addAndMakeVisible(histogram);
+            std::cout<<"display child components: " << getNumChildComponents() << "\n";
+            histogram->paint(g);
+             */
         }
-        g.drawText(String(ID+1), 5, drawHeight*(ID+1)-10, 15, 20, juce::Justification::left);
-        g.drawText(String(minMaxMean[ID][0]), 9*width/12, drawHeight*(ID+1)-10, 50, 20, juce::Justification::right);
-        g.drawText(String(minMaxMean[ID][1]), 10*width/12, drawHeight*(ID+1)-10, 50, 20, juce::Justification::right);
-        g.drawText(String(minMaxMean[ID][2]), 11*width/12, drawHeight*(ID+1)-10, 50, 20, juce::Justification::right);
-        /* not working well
-        for (int ID = 1 ; ID < histoData.size() ; ID++){
-        std::cout<<"adding histo graph \n";
-        HistoGraph* histogram = new HistoGraph(canvas,channelColours[(ID+sizeof(channelColours))%(sizeof(channelColours))],minMaxMean[ID],histoData[ID]);
-        //std::cout<<"real histo data size: " << histoData[ID].size() << "\n";
-        histograms.add(histogram);
-        addAndMakeVisible(histogram);
-        std::cout<<"display child components: " << getNumChildComponents() << "\n";
-        histogram->paint(g);
-         */
     }
     /*
     //int xOffset =

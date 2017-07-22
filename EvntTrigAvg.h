@@ -75,38 +75,30 @@ public:
     /** Creates the EvntTrigAvgEditor. */
     AudioProcessorEditor* createEditor() override;
 
-    void clearSpikeInfoBuffer();
+    
     void clearTTLTimestampBuffer();
 
     float getSampleRate();
     
     
     
-    struct spikeInfo
-    {
-        unsigned int sortedID = 0;
-        uint64 timestamp = 0;
-        
-    };
     
-    std::vector<spikeInfo> getSpikeInfoBuffer();
     std::vector<uint64> getTTLTimestampBuffer();
-    unsigned long getSpikeInfoBufferSize();
-    unsigned long getTTLTimestampBufferSize();
+        unsigned long getTTLTimestampBufferSize();
     uint64 getWindowSize();
     uint64 getBinSize();
 
     //create histogram data
     std::vector<uint64> createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData);
     uint64 binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint);
-    std::vector<std::vector<uint64>> processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData);
+    std::vector<std::vector<std::vector<uint64>>> processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData);
     std::vector<uint64> binCount(std::vector<uint64> binData, uint64 numberOfBins);
-    std::vector<std::vector<uint64>> getHistoData();
+    std::vector<std::vector<std::vector<uint64>>> getHistoData();
     bool shouldReadHistoData();
     int findMin(std::vector<uint64> data);
     int findMax(std::vector<uint64> data);
     float findMean(std::vector<uint64> data);
-    std::vector<std::vector<float>> getMinMaxMean();
+    std::vector<std::vector<std::vector<float>>> getMinMaxMean();
     std::vector<int> createElectrodeMap();
     std::vector<String> createElectrodeLabels();
     std::vector<String> getElectrodeLabels();
@@ -120,12 +112,11 @@ private:
     uint64 windowSize;
     uint64 binSize;
     //int triggerChannel = 3;
-    spikeInfo* spikeExtraction;
-    std::vector<spikeInfo> spikeInfoBuffer;
+    
     std::vector<uint64> ttlTimestampBuffer;
-    std::vector<std::vector<std::vector<uint64>>> spikeData;
-    std::vector<std::vector<uint64>> histogramData;
-    std::vector<std::vector<float>> minMaxMean;
+    std::vector<std::vector<std::vector<uint64>>> spikeData;// channel.sortedID.spikeInstance.timestamp
+    std::vector<std::vector<std::vector<uint64>>> histogramData;
+    std::vector<std::vector<std::vector<float>>> minMaxMean;
     std::vector<int> electrodeMap;
     std::vector<String> electrodeLabels;
     //float sampleRate = 0;
