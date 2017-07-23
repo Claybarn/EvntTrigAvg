@@ -169,21 +169,23 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
     g.drawText("Max", width-120, 5, 60, 20, Justification::right);
     g.drawText("Mean", width-60, 5, 60, 20, Justification::right);
     
+    int windowSize = processor->getWindowSize()/2;
+    
     g.drawHorizontalLine(getHeight()-50, 50, getWidth()-230);
     g.drawVerticalLine(50, getHeight()-50, getHeight()-20);
-    g.drawText(String(-processor->getWindowSize()/processor->getSampleRate()), 50, getHeight()-50, 60, 20, Justification::left);
+    g.drawText(String(-windowSize/processor->getSampleRate()), 50, getHeight()-50, 80, 20, Justification::left);
     
     g.drawVerticalLine(getWidth()-230, getHeight()-50, getHeight()-20);
-    g.drawText(String(processor->getWindowSize()/processor->getSampleRate()), getWidth()-230, getHeight()-50, 60, 20, Justification::left);
+    g.drawText(String(windowSize/processor->getSampleRate()), getWidth()-230, getHeight()-50, 80, 20, Justification::left);
     
     g.drawVerticalLine((50+getWidth()-230)/2, getHeight()-50, getHeight()-20);
-    g.drawText(String(0), (50+getWidth()-230)/2, getHeight()-50, 60, 20, Justification::left);
+    g.drawText(String(0), (50+getWidth()-230)/2, getHeight()-50, 80, 20, Justification::left);
     
     g.drawVerticalLine((50+getWidth()-230)/4, getHeight()-50, getHeight()-20);
-    g.drawText(String(-(processor->getWindowSize()/processor->getSampleRate()/2)), (50+getWidth()-230)/4, getHeight()-50, 60, 20, Justification::left);
+    g.drawText(String(-(windowSize/processor->getSampleRate())/2), (50+getWidth()-230)/4, getHeight()-50, 80, 20, Justification::left);
     
     g.drawVerticalLine(3*(50+getWidth()-230)/4, getHeight()-50, getHeight()-20);
-    g.drawText(String((processor->getWindowSize()/processor->getSampleRate()/2)), 3*(50+getWidth()-230)/4, getHeight()-50, 60, 20, Justification::left);
+    g.drawText(String((windowSize/processor->getSampleRate())/2), 3*(50+getWidth()-230)/4, getHeight()-50, 80, 20, Justification::left);
     
    
 }
