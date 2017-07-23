@@ -217,7 +217,7 @@ std::vector<String> EvntTrigAvg::createElectrodeLabels(){
     std::vector<String> map;
     int numSpikeChannels = getTotalSpikeChannels();
     map.resize(numSpikeChannels);
-    String electrodeNames[3]{"SI","ST","TT"};
+    String electrodeNames[3]{"Si ","St ","TT "};
     int electrodeCounter[3]{0};
     for (int chanIt = 0 ; chanIt < numSpikeChannels ; chanIt++){
         const SpikeChannel* chan = getSpikeChannel(chanIt);
@@ -358,3 +358,4 @@ std::vector<std::vector<std::vector<float>>> EvntTrigAvg::getMinMaxMean(){
 std::vector<String> EvntTrigAvg::getElectrodeLabels(){
     return electrodeLabels;
 }
+

@@ -166,13 +166,14 @@ public:
     void deselect();
     void clear();
     
-    
+    void mouseMove(const MouseEvent &event);
     
     //void buttonClicked(Button* button);
     
 private:
     Colour color;
     std::vector<uint64> histoData;
+    PopupMenu menu;
     
     
 };

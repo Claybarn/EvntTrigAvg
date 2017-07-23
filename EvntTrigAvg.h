@@ -102,6 +102,7 @@ public:
     std::vector<int> createElectrodeMap();
     std::vector<String> createElectrodeLabels();
     std::vector<String> getElectrodeLabels();
+    
 private:
     std::atomic<int> triggerEvent;
     std::atomic<int> triggerChannel;
