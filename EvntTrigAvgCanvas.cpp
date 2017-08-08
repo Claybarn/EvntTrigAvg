@@ -21,64 +21,8 @@
 */
 
 /*
- 
- //hand-built palette
- channelColours.add(Colour(224,185,36));
- channelColours.add(Colour(214,210,182));
- channelColours.add(Colour(243,119,33));
- channelColours.add(Colour(186,157,168));
- channelColours.add(Colour(237,37,36));
- channelColours.add(Colour(179,122,79));
- channelColours.add(Colour(217,46,171));
- channelColours.add(Colour(217, 139,196));
- channelColours.add(Colour(101,31,255));
- channelColours.add(Colour(141,111,181));
- channelColours.add(Colour(48,117,255));
- channelColours.add(Colour(184,198,224));
- channelColours.add(Colour(116,227,156));
- channelColours.add(Colour(150,158,155));
- channelColours.add(Colour(82,173,0));
- channelColours.add(Colour(125,99,32));
-*/
-
-/*
- 
- for (int i = 0; i < numChans; i++)
- {
- //std::cout << "Adding new display for channel " << i << std::endl;
- 
- LfpChannelDisplay* lfpChan = new LfpChannelDisplay(canvas, this, options, i);
- 
- //lfpChan->setColour(channelColours[i % channelColours.size()]);
- lfpChan->setRange(range[options->getChannelType(i)]);
- lfpChan->setChannelHeight(canvas->getChannelHeight());
- 
- addAndMakeVisible(lfpChan);
- 
- channels.add(lfpChan);
- 
- LfpChannelDisplayInfo* lfpInfo = new LfpChannelDisplayInfo(canvas, this, options, i);
- 
- //lfpInfo->setColour(channelColours[i % channelColours.size()]);
- lfpInfo->setRange(range[options->getChannelType(i)]);
- lfpInfo->setChannelHeight(canvas->getChannelHeight());
- 
- addAndMakeVisible(lfpInfo);
- 
- channelInfo.add(lfpInfo);
- 
- savedChannelState.add(true);
- 
- totalHeight += lfpChan->getChannelHeight();
- 
- }
- 
-*/
-
-
-
-
-#include "EvntTrigAvgCanvas.h"
+ */
+ #include "EvntTrigAvgCanvas.h"
 
 
 EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
@@ -94,14 +38,6 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     clearHisto->setBounds(80,5,65,15);
     clearHisto->setClickingTogglesState(false);
     addAndMakeVisible(clearHisto);
-/*
-    addUnitButton = new UtilityButton("New box unit", Font("Small Text", 13, Font::plain));
-    addUnitButton->setRadius(3.0f);
-    addUnitButton->addListener(this);
-    addAndMakeVisible(addUnitButton);
-*/
-    
-
     setWantsKeyboardFocus(true);
     
     update();
@@ -164,11 +100,11 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
     int xOffset= 20;
     g.setColour(Colours::snow);
     g.drawText("Electrode",5, 5, width/8, 20, juce::Justification::left);
-    g.drawText("Trials: " + String(processor->getTTLTimestampBufferSize()),(xOffset+drawWidth)/2-50,5,100,20,Justification::centred);
+    g.drawText("Trials: " + String(processor->getLastTTLCalculated()),(xOffset+drawWidth)/2-50,5,100,20,Justification::centred);
     g.drawText("Min.", width-180, 5, 60, 20, Justification::right);
     g.drawText("Max", width-120, 5, 60, 20, Justification::right);
     g.drawText("Mean", width-60, 5, 60, 20, Justification::right);
-    
+    /*
     int windowSize = processor->getWindowSize()/2;
     
     g.drawHorizontalLine(getHeight()-50, 50, getWidth()-230);
@@ -186,7 +122,7 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
     
     g.drawVerticalLine(3*(50+getWidth()-230)/4, getHeight()-50, getHeight()-20);
     g.drawText(String((windowSize/processor->getSampleRate())/2), 3*(50+getWidth()-230)/4, getHeight()-50, 80, 20, Justification::left);
-    
+  */
    
 }
 
@@ -200,33 +136,7 @@ void EvntTrigAvgCanvas::refresh()
 
 bool EvntTrigAvgCanvas::keyPressed(const KeyPress& key)
 {
-
-/*
-    KeyPress c = KeyPress::createFromDescription("c");
-    KeyPress e = KeyPress::createFromDescription("escape");
-    KeyPress d = KeyPress::createFromDescription("delete");
-
-    if (key.isKeyCode(c.getKeyCode())) // C
-    {
-        spikeDisplay->clear();
-
-        std::cout << "Clearing display" << std::endl;
-        return true;
-    }
-    else  if (key.isKeyCode(e.getKeyCode()))   // ESC
-    {
-        spikeDisplay->setPolygonMode(false);
-        return true;
-    }
-    else  if (key.isKeyCode(d.getKeyCode()))   // Delete
-    {
-        removeUnitOrBox();
-        return true;
-    }
-*/
     return false;
- 
-
 }
 
 void EvntTrigAvgCanvas::buttonClicked(Button* button)
@@ -263,6 +173,10 @@ EvntTrigAvgDisplay::EvntTrigAvgDisplay(EvntTrigAvgCanvas* c, Viewport* v, EvntTr
     channelColours[13]=Colour(150,158,155);
     channelColours[14]=Colour(82,173,0);
     channelColours[15]=Colour(125,99,32);
+    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
+    scale->setBounds(20, getHeight()-40, getWidth()-20, 40);
+    addAndMakeVisible(scale,false);
+
 
 }
 
@@ -285,11 +199,12 @@ void EvntTrigAvgDisplay::resized()
         graphs[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
         graphs[i]->resized();
     }
+    scale->setBounds(20+30, getHeight()-40, getWidth()-210-20, 40);
 }
 
 void EvntTrigAvgDisplay::paint(Graphics &g){
     //if(processor->shouldReadHistoData()){
-    g.fillAll(Colours::black);
+    g.fillAll(Colours::darkgrey);
     histoData = processor->getHistoData();
     minMaxMean = processor->getMinMaxMean();
     int width=getWidth();
@@ -301,6 +216,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     int drawHeight = 40;
     //g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
     std::vector<String> labels = processor->getElectrodeLabels();
+   
     /*
     for (int electrode = 0 ; electrode < histoData.size() ; electrode++){
         for(int sortedID = 0 ; sortedID < histoData[electrode].size() ; sortedID++){
@@ -326,7 +242,11 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
             addAndMakeVisible(graph,false);
         }
     }
+    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
+    scale->setBounds(20+30, getHeight()-40, getWidth()-210-20, 40);
+    addAndMakeVisible(scale,false);
     repaint();
+    
 }
 
 void EvntTrigAvgDisplay::refresh(){
@@ -336,13 +256,51 @@ void EvntTrigAvgDisplay::refresh(){
 }
 
 //--------------------------------------------------------------------
+Timescale::Timescale(int wS, uint64 sR){
+    windowSize = wS;
+    sampleRate = sR;
+}
+Timescale::~Timescale(){
+    
+}
+
+void Timescale::paint(Graphics& g){
+    g.setColour(Colours::snow);
+    
+    
+    g.drawHorizontalLine(0, 0, getWidth());
+    g.drawVerticalLine(0, 0, getHeight());
+    g.drawText(String(-windowSize/sampleRate), 5, 5, 0, getHeight(), Justification::right);
+    
+    g.drawVerticalLine(getWidth()/4, 0, getHeight());
+    g.drawText(String(-windowSize/sampleRate/2), getWidth()/4, 50, 5, getHeight()-5, Justification::right);
+    
+    g.drawVerticalLine(getWidth()/2, 0, getHeight());
+    g.drawText(String(0), (50+getWidth()-230)/2, 50, 5, getHeight(), Justification::right);
+    
+    
+    g.drawVerticalLine(3*getWidth()/4, 0, getHeight());
+    g.drawText(String(windowSize/sampleRate), getWidth()/4, 50, 5, getHeight(), Justification::left);
+    
+    
+    g.drawVerticalLine(getWidth(), 0, getHeight());
+    g.drawText(String(windowSize/sampleRate/2), 3*(50+getWidth()-230)/4, 50, 5, getHeight(), Justification::left);
+    
+
+}
+void Timescale::resized(){
+    
+}
+ 
+//--------------------------------------------------------------------
+
 
 GraphUnit::GraphUnit(juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f){
     color = c;
     LD = new LabelDisplay(c,n);
     LD->setBounds(0,0,30,40);
     addAndMakeVisible(LD,false);
-    HG = new HistoGraph(c, f);
+    HG = new HistoGraph(c, s[1], f);
     HG->setBounds(30,0,getWidth()-210,40);
     addAndMakeVisible(HG,false);
     SD = new StatDisplay(c,s);
@@ -353,10 +311,7 @@ GraphUnit::~GraphUnit(){
     deleteAllChildren();
 }
 void GraphUnit::paint(Graphics& g){
-    g.setColour(Colours::snow);
-    g.setOpacity(0.5);
-    g.drawVerticalLine(getWidth()/2,5, getHeight());
-    //g.setOpacity(1);
+        //g.setOpacity(1);
 }
 void GraphUnit::resized(){
     LD->setBounds(0,0,30,40);
@@ -383,9 +338,10 @@ void LabelDisplay::resized(){
 
 //----------------
 
-HistoGraph::HistoGraph(juce::Colour c, std::vector<uint64> f){
+HistoGraph::HistoGraph(juce::Colour c, int m, std::vector<uint64> f){
     color = c;
     histoData = f;
+    max = m;
     setMouseClickGrabsKeyboardFocus(true);
 }
 
@@ -394,9 +350,16 @@ HistoGraph::~HistoGraph(){
 }
 
 void HistoGraph::paint(Graphics& g){
+    g.setColour(Colours::snow);
+    g.setOpacity(0.5);
+    g.drawVerticalLine(getWidth()/2,5, getHeight());
+
     g.setColour(color);
     for (int i = 1 ; i < histoData.size() ; i++){
-        g.drawLine((i-1)*getWidth()/histoData.size(),getHeight()-histoData.operator[](i-1),(i)*getWidth()/histoData.size(),getHeight()-histoData.operator[](i));
+        if(max!=0)
+            g.drawLine((i-1)*getWidth()/histoData.size(),getHeight()-(histoData.operator[](i-1)*getHeight()/max),(i)*getWidth()/histoData.size(),getHeight()-(histoData.operator[](i)*getHeight()/max));
+        else
+            g.drawLine((i-1)*getWidth()/histoData.size(),getHeight()-(histoData.operator[](i-1)*getHeight()),(i)*getWidth()/histoData.size(),getHeight()-(histoData.operator[](i)*getHeight()));
     }
 }
 

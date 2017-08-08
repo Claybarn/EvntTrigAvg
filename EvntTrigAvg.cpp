@@ -51,22 +51,25 @@ void EvntTrigAvg::setParameter(int parameterIndex, float newValue){
         triggerChannel = static_cast<int>(newValue);
         changed = true;
     }
-    else if(parameterIndex == 2 && binSize != newValue/(getSampleRate()/1000)){
-        binSize = newValue/(getSampleRate()/1000);
+    else if(parameterIndex == 2 && binSize != newValue*(getSampleRate()/1000)){
+        binSize = newValue*(getSampleRate()/1000);
         changed = true;
     }
-    else if(parameterIndex == 3 && windowSize != newValue/(getSampleRate()/1000)){
-        windowSize = newValue/(getSampleRate()/1000);
+    else if(parameterIndex == 3 && windowSize != newValue*(getSampleRate()/1000)){
+        windowSize = newValue*(getSampleRate()/1000);
         changed = true;
     }
     else if (parameterIndex == 4)
         changed = true;
     // If anything was changed, delete all data and start over
     if (changed){
-        /*
         minMaxMean.clear();
         spikeData.clear();
-         */
+        ttlTimestampBuffer.clear();
+        histogramData.clear();
+        lastTTLCalculated=0;
+        updateSettings();
+        //recalc=true;
     }
 }
 
@@ -75,7 +78,7 @@ void EvntTrigAvg::updateSettings(){
     electrodeMap = createElectrodeMap();
     electrodeLabels.clear();
     electrodeLabels = createElectrodeLabels();
-    if(getTotalSpikeChannels()!=spikeData.size()){
+    if(spikeData.size()!=getTotalSpikeChannels()){
         spikeData.resize(getTotalSpikeChannels());
         minMaxMean.resize(getTotalSpikeChannels());
     }
@@ -190,8 +193,8 @@ std::vector<uint64> EvntTrigAvg::getTTLTimestampBuffer(){
     return ttlTimestampBuffer;
 }
 
-unsigned long EvntTrigAvg::getTTLTimestampBufferSize(){
-    return ttlTimestampBuffer.size();
+int EvntTrigAvg::getLastTTLCalculated(){
+    return lastTTLCalculated;
 }
 
 /** creates map to convert channelIDX to electrode number */
@@ -263,8 +266,9 @@ std::vector<std::vector<std::vector<uint64>>> EvntTrigAvg::processSpikeData(std:
 
 /** returns bin counts */
 std::vector<uint64> EvntTrigAvg::createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData){
-    std::vector<uint64> histoData;
     uint64 numberOfBins = windowSize/binSize;
+    std::vector<uint64> histoData;
+    histoData.reserve(numberOfBins);
     for(int ttlIterator = 0 ; ttlIterator < ttlData.size() ; ttlIterator++){
         for(int spikeIterator = 0 ; spikeIterator < spikeData.size() ; spikeIterator++){
             int relativeSpikeValue = int(spikeData[spikeIterator])-int(ttlData[ttlIterator]);
@@ -280,10 +284,18 @@ std::vector<uint64> EvntTrigAvg::createHistogramData(std::vector<uint64> spikeDa
 
 // Returns the bin a data point belongs to given the very first value covered by the bins, the very last value covered by then bins, bin size and the data point to bin, currently only works for positive numbers (can get around by adding minimum value to all values
 uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint){
+    //std::cout<<"data point: " << dataPoint << "\n";
     uint64 binsInRange = (endBin-startBin)+1;
+    //std::cout<<"bins in range: " << binsInRange << "\n";
     uint64 binsToSearch = binsInRange/2;
+    //std::cout<<"bins to search: " << binsToSearch << "\n";
+    //std::cout<<" lower bound: "<< startBin*binSize << "\n";
+    //std::cout<<"upper bound: "<< endBin*binSize << "\n";
     if (binsToSearch <= 1){
+        //std::cout<<"answer: " << startBin << "\n";
+        //std::cout<< "\n \n";
         return startBin;
+        
     }
     else if (dataPoint < (startBin+binsToSearch)*binSize){ // if in first half of search range
         return binDataPoint(startBin,startBin+(binsToSearch-1),binSize,dataPoint);
@@ -321,6 +333,7 @@ bool EvntTrigAvg::shouldReadHistoData(){
     return readHistoData;
 }
 
+//TODO change int_max and int_min to numbers
 int EvntTrigAvg::findMin(std::vector<uint64> data){
     int min = INT_MAX;
     for (int i = 0 ; i < data.size() ; i++){

@@ -70,21 +70,13 @@ public:
     /** Called after acquisition is finished. */
     bool disable() override;
 
-    
-    
     /** Creates the EvntTrigAvgEditor. */
     AudioProcessorEditor* createEditor() override;
-
     
-    void clearTTLTimestampBuffer();
-
+    void clearTTLTimestampBuffer()'
     float getSampleRate();
-    
-    
-    
-    
     std::vector<uint64> getTTLTimestampBuffer();
-        unsigned long getTTLTimestampBufferSize();
+    int getLastTTLCalculated();
     uint64 getWindowSize();
     uint64 getBinSize();
 

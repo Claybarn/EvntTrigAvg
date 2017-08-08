@@ -35,6 +35,7 @@
 */
 
 class EvntTrigAvgDisplay;
+class Timescale;
 class GraphUnit;
 class LabelDisplay;
 class HistoGraph;
@@ -114,11 +115,27 @@ private:
     EvntTrigAvgCanvas* canvas;
     Viewport* viewport;
     Array<GraphUnit*> graphs;
+    Timescale* scale;
     juce::Colour channelColours[16];
     std::vector<std::vector<std::vector<uint64>>> histoData;
     std::vector<std::vector<std::vector<float>>> minMaxMean;
     int border = 20;
 };
+
+//---------------------------
+
+class Timescale : public Component
+{
+public:
+    Timescale(int windowSize, uint64 sR);
+    ~Timescale();
+    void paint(Graphics& g);
+    void resized();
+private:
+    int windowSize;
+    uint64 sampleRate;
+};
+
 
 //---------------------------
 
@@ -156,7 +173,7 @@ class HistoGraph : public Component
 {
     
 public:
-    HistoGraph(juce::Colour c, std::vector<uint64> h);
+    HistoGraph(juce::Colour c, int m, std::vector<uint64> h);
     ~HistoGraph();
     
     void paint(Graphics& g);
@@ -172,6 +189,7 @@ public:
     
 private:
     Colour color;
+    int max;
     std::vector<uint64> histoData;
     PopupMenu menu;
     
