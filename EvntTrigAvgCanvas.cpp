@@ -251,21 +251,21 @@ void Timescale::paint(Graphics& g){
 
     g.drawHorizontalLine(0, 0, getWidth());
     g.drawVerticalLine(0, 0, getHeight());
-    g.drawText(String(-1000.0*float(windowSize)/float(sampleRate)) + " ms", 0, 5, 100, 10, Justification::left);
+    g.drawText(" " + String(-1000.0*float(windowSize)/float(sampleRate)) + " ms", 0, 5, 100, 10, Justification::left);
     //g.drawText(<#const juce::String &text#>, <#int x#>, <#int y#>, <#int width#>, <#int height#>, <#juce::Justification justificationType#>)
     g.drawVerticalLine(getWidth()/4, 0, getHeight());
-    g.drawText(String(-1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", getWidth()/4, 5, 100, 10, Justification::left);
+    g.drawText(" " + String(-1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", getWidth()/4, 5, 100, 10, Justification::left);
     
     g.drawVerticalLine(getWidth()/2, 0, getHeight());
-    g.drawText("0 ms",getWidth()/2, 5, 100, 10, Justification::left);
+    g.drawText(" 0 ms",getWidth()/2, 5, 100, 10, Justification::left);
     
     
     g.drawVerticalLine(3*getWidth()/4, 0, getHeight());
-    g.drawText(String(1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", 3*getWidth()/4-100, 5, 100, 10, Justification::right);
+    g.drawText(" " + String(1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", 3*getWidth()/4-100, 5, 100, 10, Justification::right);
     
     
     g.drawVerticalLine(getWidth()-1, 0, getHeight());
-    g.drawText(String(1000.0*float(windowSize)/float(sampleRate)) + " ms", getWidth()-100, 5, 100, 10, Justification::right);
+    g.drawText(" " + String(1000.0*float(windowSize)/float(sampleRate)) + " ms", getWidth()-100, 5, 100, 10, Justification::right);
     
 
 }
