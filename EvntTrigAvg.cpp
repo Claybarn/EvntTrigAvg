@@ -335,7 +335,8 @@ bool EvntTrigAvg::shouldReadHistoData(){
 
 //TODO change int_max and int_min to numbers
 int EvntTrigAvg::findMin(std::vector<uint64> data){
-    int min = INT_MAX;
+    //int min = INT_MAX;
+    int min = 2147483647;
     for (int i = 0 ; i < data.size() ; i++){
         if(data[i]<min){
             min=data[i];
@@ -345,7 +346,8 @@ int EvntTrigAvg::findMin(std::vector<uint64> data){
 }
 
 int EvntTrigAvg::findMax(std::vector<uint64> data){
-    int max = INT_MIN;
+    //int max = INT_MIN;
+    int max =-2147483647;
     for (int i = 0 ; i < data.size() ; i++){
         int dataPoint = data[i];
         if(dataPoint>max){

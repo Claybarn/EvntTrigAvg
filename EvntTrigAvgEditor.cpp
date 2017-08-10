@@ -49,6 +49,7 @@ EvntTrigAvgEditor::EvntTrigAvgEditor(GenericProcessor* parentNode, bool useDefau
     binSize->setFont(Font("Default", 12, Font::plain));
     binSize->setEditable(true);
     binSize->setBounds(100,60,80,20);
+    binSize->addListener(this);
     binSize->setColour(Label::textColourId, Colours::white);
     binSize->setTooltip("Set the bin size of the histogram in milliseconds");
     binSize->setText(String(10),dontSendNotification);
@@ -121,10 +122,22 @@ void EvntTrigAvgEditor::buttonEvent(Button* button)
 
 void EvntTrigAvgEditor::labelTextChanged(Label* label)
 {
-    if (label == binSize)
-        processor->setParameter(2,label->getText().getIntValue());
-    else if (label == windowSize)
-        processor->setParameter(3,label->getText().getIntValue());
+    uint64 wS = processor->getWindowSize();
+    uint64 bS = processor->getBinSize();
+    uint64 wms = wS/(processor->getSampleRate()/1000);
+    uint64 bms = bS/(processor->getSampleRate()/1000);
+    if (label == binSize){
+        if(label->getText().getIntValue() < wms)
+            processor->setParameter(2,label->getText().getIntValue());
+        else
+            label->setText(String(bms),juce::NotificationType::dontSendNotification);
+    }
+    else if (label == windowSize){
+        if(label->getText().getIntValue() > bms)
+            processor->setParameter(3,label->getText().getIntValue());
+        else
+            label->setText(String(wms),juce::NotificationType::dontSendNotification);
+    }
 }
 
 

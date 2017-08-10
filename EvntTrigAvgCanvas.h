@@ -115,6 +115,7 @@ private:
     EvntTrigAvgCanvas* canvas;
     Viewport* viewport;
     Array<GraphUnit*> graphs;
+    PopupMenu menus;
     Timescale* scale;
     juce::Colour channelColours[16];
     std::vector<std::vector<std::vector<uint64>>> histoData;
@@ -142,7 +143,7 @@ private:
 class GraphUnit : public Component
 {
 public:
-    GraphUnit(juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f);
+    GraphUnit(PopupMenu men, juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f);
     ~GraphUnit();
     void paint(Graphics& g);
     void resized();
@@ -173,7 +174,7 @@ class HistoGraph : public Component
 {
     
 public:
-    HistoGraph(juce::Colour c, int m, std::vector<uint64> h);
+    HistoGraph(PopupMenu men, juce::Colour c, int m, std::vector<uint64> h);
     ~HistoGraph();
     
     void paint(Graphics& g);
@@ -192,6 +193,7 @@ private:
     int max;
     std::vector<uint64> histoData;
     PopupMenu menu;
+    int valueY=0;
     
     
 };

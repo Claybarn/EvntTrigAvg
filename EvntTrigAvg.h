@@ -73,7 +73,7 @@ public:
     /** Creates the EvntTrigAvgEditor. */
     AudioProcessorEditor* createEditor() override;
     
-    void clearTTLTimestampBuffer()'
+    void clearTTLTimestampBuffer();
     float getSampleRate();
     std::vector<uint64> getTTLTimestampBuffer();
     int getLastTTLCalculated();
@@ -104,7 +104,7 @@ private:
     int lastTTLCalculated = 0;
     uint64 windowSize;
     uint64 binSize;
-    //int triggerChannel = 3;
+    
     
     std::vector<uint64> ttlTimestampBuffer;
     std::vector<std::vector<std::vector<uint64>>> spikeData;// channel.sortedID.spikeInstance.timestamp
@@ -113,7 +113,6 @@ private:
     std::vector<int> electrodeMap;
     std::vector<String> electrodeLabels;
     //float sampleRate = 0;
-    //float defaultSampleRate = getDefaultSampleRate();
     
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EvntTrigAvg);

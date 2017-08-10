@@ -236,7 +236,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     graphs.clear();
     for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
         for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
-            GraphUnit* graph = new GraphUnit(channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+            GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
             graphs.add(graph);
             graph->setBounds(20, 40*(channelIt+sortedId), width-20, 40);
             addAndMakeVisible(graph,false);
@@ -295,12 +295,12 @@ void Timescale::resized(){
 //--------------------------------------------------------------------
 
 
-GraphUnit::GraphUnit(juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f){
+GraphUnit::GraphUnit(PopupMenu men, juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f){
     color = c;
     LD = new LabelDisplay(c,n);
     LD->setBounds(0,0,30,40);
     addAndMakeVisible(LD,false);
-    HG = new HistoGraph(c, s[1], f);
+    HG = new HistoGraph(men,c, s[1], f);
     HG->setBounds(30,0,getWidth()-210,40);
     addAndMakeVisible(HG,false);
     SD = new StatDisplay(c,s);
@@ -338,7 +338,8 @@ void LabelDisplay::resized(){
 
 //----------------
 
-HistoGraph::HistoGraph(juce::Colour c, int m, std::vector<uint64> f){
+HistoGraph::HistoGraph(PopupMenu men, juce::Colour c, int m, std::vector<uint64> f){
+    //menu = &men;
     color = c;
     histoData = f;
     max = m;
@@ -381,14 +382,14 @@ void HistoGraph::clear(){
 
 void HistoGraph::mouseMove(const MouseEvent &event){
     int posX = event.getMouseDownX();
-    menu.clear();
     if(histoData.size()>0){
-        int valueY = histoData[float(posX)/float(getWidth())*float(histoData.size())];
-        menu.addItem(1, "Bin: " + String(int(float(posX)/float(getWidth())*float(histoData.size()))+1)+ " Counts: " + String(valueY));
+         int valueY = histoData[float(posX)/float(getWidth())*float(histoData.size())];
+        menu.clear();
+        menu.addItem(1, "Bin: " + String(int(float(posX)/float(getWidth())*float(histoData.size()))+1)+ " Counts: " + String(valueY),false);
         menu.showAt(this);
+    
     }
 }
-
 //----------------
 
 StatDisplay::StatDisplay(juce::Colour c, std::vector<float> s){
