@@ -44,7 +44,7 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
 
     processor = n;
     display = new EvntTrigAvgDisplay(this, viewport, n);
-    viewport->setScrollBarsShown(true, false);
+    viewport->setScrollBarsShown(true, false,true);
     viewport->setViewedComponent(display,false);
     addAndMakeVisible(viewport);
     
@@ -214,24 +214,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     int xOffset= 20;
     int drawWidth = width-20-width/4;
     int drawHeight = 40;
-    //g.drawLine((xOffset+drawWidth)/2, border, (xOffset+drawWidth)/2 , height-border, 1);
     std::vector<String> labels = processor->getElectrodeLabels();
-   
-    /*
-    for (int electrode = 0 ; electrode < histoData.size() ; electrode++){
-        for(int sortedID = 0 ; sortedID < histoData[electrode].size() ; sortedID++){
-            int lineX= drawWidth/(histoData[electrode][sortedID].size()-1);
-            for (int i = 1 ; i < histoData[electrode][sortedID].size() ; i++){
-                g.setColour(channelColours[(sortedID+16)%16]);
-            }
-            g.drawText(labels[electrode], 5, drawHeight*(electrode+1)-10, 15, 20, juce::Justification::left);
-            g.drawText(String(minMaxMean[electrode][sortedID][0]), 9*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
-            g.drawText(String(minMaxMean[electrode][sortedID][1]), 10*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
-            g.drawText(String(minMaxMean[electrode][sortedID][2]), 11*width/12, drawHeight*(sortedID+1)-10, 50, 20, juce::Justification::right);
-            
-        }
-     }
-     */
     deleteAllChildren();
     graphs.clear();
     for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
@@ -246,7 +229,6 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     scale->setBounds(20+30, getHeight()-40, getWidth()-210-20, 40);
     addAndMakeVisible(scale,false);
     repaint();
-    
 }
 
 void EvntTrigAvgDisplay::refresh(){
@@ -266,25 +248,24 @@ Timescale::~Timescale(){
 
 void Timescale::paint(Graphics& g){
     g.setColour(Colours::snow);
-    
-    
+
     g.drawHorizontalLine(0, 0, getWidth());
     g.drawVerticalLine(0, 0, getHeight());
-    g.drawText(String(-windowSize/sampleRate), 5, 5, 0, getHeight(), Justification::right);
-    
+    g.drawText(String(-1000.0*float(windowSize)/float(sampleRate)) + " ms", 0, 5, 100, 10, Justification::left);
+    //g.drawText(<#const juce::String &text#>, <#int x#>, <#int y#>, <#int width#>, <#int height#>, <#juce::Justification justificationType#>)
     g.drawVerticalLine(getWidth()/4, 0, getHeight());
-    g.drawText(String(-windowSize/sampleRate/2), getWidth()/4, 50, 5, getHeight()-5, Justification::right);
+    g.drawText(String(-1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", getWidth()/4, 5, 100, 10, Justification::left);
     
     g.drawVerticalLine(getWidth()/2, 0, getHeight());
-    g.drawText(String(0), (50+getWidth()-230)/2, 50, 5, getHeight(), Justification::right);
+    g.drawText("0 ms",getWidth()/2, 5, 100, 10, Justification::left);
     
     
     g.drawVerticalLine(3*getWidth()/4, 0, getHeight());
-    g.drawText(String(windowSize/sampleRate), getWidth()/4, 50, 5, getHeight(), Justification::left);
+    g.drawText(String(1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", 3*getWidth()/4-100, 5, 100, 10, Justification::right);
     
     
-    g.drawVerticalLine(getWidth(), 0, getHeight());
-    g.drawText(String(windowSize/sampleRate/2), 3*(50+getWidth()-230)/4, 50, 5, getHeight(), Justification::left);
+    g.drawVerticalLine(getWidth()-1, 0, getHeight());
+    g.drawText(String(1000.0*float(windowSize)/float(sampleRate)) + " ms", getWidth()-100, 5, 100, 10, Justification::right);
     
 
 }

@@ -150,30 +150,8 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         spikeData[electrode][sortedID].push_back(newSpike->getTimestamp());
         if (sortedID>0)
             spikeData[electrode][0].push_back(newSpike->getTimestamp());
-        /*
-        if(newSpike->getSortedID()>spikeData.size()){
-            spikeData.resize(newSpike->getSortedID());
-        }
-         */
+        
     }
-    /*
-    int numSpikeChannels = getTotalSpikeChannels();
-    std::cout<<"totalSpikeChannels: " << numSpikeChannels << "\n";
-    for (int chanIterator = 0 ; chanIterator < numSpikeChannels ; chanIterator++){
-        const SpikeChannel* chan = getSpikeChannel(chanIterator);
-        std::cout<<"channel type: " << chan->getChannelType() << "\n";
-        std::cout<<"number of channels : " << chan->getNumChannels() << "\n";
-        for(int blah = 0 ; blah < chan->getSourceChannelInfo().size() ; blah++){
-            std::cout<<"index of sourceChannelInfo: " << blah << "\n";
-            std::cout<<"processorID: " <<chan->getSourceChannelInfo()[blah].processorID<<"\n";
-            std::cout<< "subProcessorID: "<<chan->getSourceChannelInfo()[blah].subProcessorID<<"\n";
-            std::cout<<"channelIDX: " <<chan->getSourceChannelInfo()[blah].channelIDX<<"\n";
-            std::cout<<"\n";
-        }
-        std::cout<<"\n";
-    }
-     */
-    
 }
 
 AudioProcessorEditor* EvntTrigAvg::createEditor(){
@@ -241,7 +219,7 @@ std::vector<std::vector<std::vector<uint64>>> EvntTrigAvg::processSpikeData(std:
     for (int channelIterator = 0 ; channelIterator < getTotalSpikeChannels() ; channelIterator++){
         processedSpikeData[channelIterator].resize(spikeData[channelIterator].size());
         for (int sortedIdIterator = 0 ; sortedIdIterator < spikeData[channelIterator].size() ; sortedIdIterator++){
-            if(spikeData[channelIterator][sortedIdIterator].size()>0){
+            //if(spikeData[channelIterator][sortedIdIterator].size()>0){
                 std::vector<uint64> toAdd = createHistogramData(spikeData[channelIterator][sortedIdIterator],ttlData);
                 if(minMaxMean.size()<channelIterator+1)
                     minMaxMean.resize(channelIterator+1);
@@ -258,7 +236,7 @@ std::vector<std::vector<std::vector<uint64>>> EvntTrigAvg::processSpikeData(std:
                     }
                     processedSpikeData[channelIterator][sortedIdIterator].push_back(toAdd[i]);
                 }
-            }
+            //}
         }
     }
     return processedSpikeData;
@@ -284,18 +262,10 @@ std::vector<uint64> EvntTrigAvg::createHistogramData(std::vector<uint64> spikeDa
 
 // Returns the bin a data point belongs to given the very first value covered by the bins, the very last value covered by then bins, bin size and the data point to bin, currently only works for positive numbers (can get around by adding minimum value to all values
 uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint){
-    //std::cout<<"data point: " << dataPoint << "\n";
     uint64 binsInRange = (endBin-startBin)+1;
-    //std::cout<<"bins in range: " << binsInRange << "\n";
     uint64 binsToSearch = binsInRange/2;
-    //std::cout<<"bins to search: " << binsToSearch << "\n";
-    //std::cout<<" lower bound: "<< startBin*binSize << "\n";
-    //std::cout<<"upper bound: "<< endBin*binSize << "\n";
     if (binsToSearch <= 1){
-        //std::cout<<"answer: " << startBin << "\n";
-        //std::cout<< "\n \n";
         return startBin;
-        
     }
     else if (dataPoint < (startBin+binsToSearch)*binSize){ // if in first half of search range
         return binDataPoint(startBin,startBin+(binsToSearch-1),binSize,dataPoint);

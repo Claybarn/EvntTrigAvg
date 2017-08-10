@@ -129,14 +129,18 @@ void EvntTrigAvgEditor::labelTextChanged(Label* label)
     if (label == binSize){
         if(label->getText().getIntValue() < wms)
             processor->setParameter(2,label->getText().getIntValue());
-        else
+        else{
+            CoreServices::sendStatusMessage("Bin size must be smaller than window size.");
             label->setText(String(bms),juce::NotificationType::dontSendNotification);
+        }
     }
     else if (label == windowSize){
         if(label->getText().getIntValue() > bms)
             processor->setParameter(3,label->getText().getIntValue());
-        else
+        else{
+            CoreServices::sendStatusMessage("Window size must be larer than bin size.");
             label->setText(String(wms),juce::NotificationType::dontSendNotification);
+        }
     }
 }
 
