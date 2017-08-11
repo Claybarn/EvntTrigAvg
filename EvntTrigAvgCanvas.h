@@ -110,6 +110,7 @@ public:
     void resized();
     void paint(Graphics &g);
     void refresh();
+    void mouseWheelMove(const MouseEvent&  e, const MouseWheelDetails&   wheel);
 private:
     EvntTrigAvg* processor;
     EvntTrigAvgCanvas* canvas;
