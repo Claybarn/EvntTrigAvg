@@ -50,7 +50,7 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     
     int yOffset = 50;
     scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
-    viewport->setBounds(0,yOffset,getWidth()-scrollBarThickness,getHeight()-yOffset);
+    viewport->setBounds(0,yOffset,getWidth(),getHeight()-yOffset);
     display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-2*yOffset);
     scale->setBounds(20, getHeight()-40, getWidth()-20-scrollBarThickness, 40);
     addAndMakeVisible(scale,false);
