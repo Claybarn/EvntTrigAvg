@@ -87,7 +87,7 @@ void EvntTrigAvgCanvas::resized()
     int yOffset = 50;
     int drawWidth = getWidth()-20-getWidth()/4;
     viewport->setBounds(0,yOffset,getWidth(),getHeight());
-    display->setBounds(0,100,getWidth(), getHeight()-2*yOffset);
+    display->setBounds(0,100,getWidth()-5, getHeight()-2*yOffset);
     repaint();
 }
 
@@ -199,7 +199,7 @@ void EvntTrigAvgDisplay::resized()
         graphs[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
         graphs[i]->resized();
     }
-    scale->setBounds(20+30, getHeight()-40, getWidth()-210-20, 40);
+    scale->setBounds(20+30, getHeight()-40, width-20-width/4, 40);
 }
 
 void EvntTrigAvgDisplay::paint(Graphics &g){
@@ -226,7 +226,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
         }
     }
     scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
-    scale->setBounds(20+30, getHeight()-40, getWidth()-210-20, 40);
+    scale->setBounds(20, getHeight()-40, width-20, 40);
     addAndMakeVisible(scale,false);
     repaint();
 }
@@ -248,24 +248,28 @@ Timescale::~Timescale(){
 
 void Timescale::paint(Graphics& g){
     g.setColour(Colours::snow);
-
-    g.drawHorizontalLine(0, 0, getWidth());
-    g.drawVerticalLine(0, 0, getHeight());
-    g.drawText(" " + String(-1000.0*float(windowSize)/float(sampleRate)) + " ms", 0, 5, 100, 10, Justification::left);
+    // HG->setBounds(30,0,getWidth()-210,40);
+    int histogramLen = getWidth()-210-30;
+    int vertLineLen = 20;
+    int textStart = vertLineLen+5;
+    g.drawHorizontalLine(0, 0, 30+histogramLen);
+    
+    g.drawVerticalLine(30, 0, vertLineLen);
+    g.drawText(String(-1000.0*float(windowSize)/float(sampleRate)) + " ms", 0, textStart, 60, 10, Justification::centred);
     //g.drawText(<#const juce::String &text#>, <#int x#>, <#int y#>, <#int width#>, <#int height#>, <#juce::Justification justificationType#>)
-    g.drawVerticalLine(getWidth()/4, 0, getHeight());
-    g.drawText(" " + String(-1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", getWidth()/4, 5, 100, 10, Justification::left);
+    g.drawVerticalLine(histogramLen/4+30, 0, vertLineLen);
+    g.drawText(String(-1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", histogramLen/4, textStart, 60, 10, Justification::centred);
     
-    g.drawVerticalLine(getWidth()/2, 0, getHeight());
-    g.drawText(" 0 ms",getWidth()/2, 5, 100, 10, Justification::left);
-    
-    
-    g.drawVerticalLine(3*getWidth()/4, 0, getHeight());
-    g.drawText(" " + String(1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", 3*getWidth()/4-100, 5, 100, 10, Justification::right);
+    g.drawVerticalLine(histogramLen/2+30, 0, vertLineLen);
+    g.drawText(" 0 ms",histogramLen/2, textStart, 60, 10, Justification::centred);
     
     
-    g.drawVerticalLine(getWidth()-1, 0, getHeight());
-    g.drawText(" " + String(1000.0*float(windowSize)/float(sampleRate)) + " ms", getWidth()-100, 5, 100, 10, Justification::right);
+    g.drawVerticalLine(3*histogramLen/4+30, 0, vertLineLen);
+    g.drawText(String(1000.0*float(windowSize)/2.0/float(sampleRate)) + " ms", 3*histogramLen/4, textStart, 60, 10, Justification::centred);
+    
+    
+    g.drawVerticalLine(histogramLen+30, 0, vertLineLen);
+    g.drawText(String(1000.0*float(windowSize)/float(sampleRate)) + " ms", histogramLen, textStart, 60, 10, Justification::centred);
     
 
 }
