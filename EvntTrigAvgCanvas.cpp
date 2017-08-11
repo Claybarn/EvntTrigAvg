@@ -29,8 +29,6 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     processor(n)
 {
     
-    viewport = new Viewport();
-    
     
     clearHisto = new UtilityButton("CLEAR", Font("Default", 12, Font::plain));
     clearHisto->addListener(this);
@@ -39,41 +37,22 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     clearHisto->setClickingTogglesState(false);
     addAndMakeVisible(clearHisto);
     setWantsKeyboardFocus(true);
+    
+    viewport = new Viewport();
+    viewport->setScrollBarsShown(true,true);
     scrollBarThickness = viewport->getScrollBarThickness();
     
-int yOffset = 50;
+    int yOffset = 50;
     processor = n;
     display = new EvntTrigAvgDisplay(this, viewport, n);
     display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-2*yOffset);
-    addAndMakeVisible(viewport);
-    viewport->setViewedComponent(display,false);
-    viewport->setScrollBarsShown(true,false);
-    viewport->setBounds(0,yOffset,getWidth(),getHeight()-yOffset);
-   //viewport->autoScroll(<#int mouseX#>, <#int mouseY#>, <#int distanceFromEdge#>, <#int maximumSpeed#>)
-    
-    std::cout<<"is vert shown?: "<< viewport->isVerticalScrollBarShown() << "\n";
-    ScrollBar* bar = viewport->getVerticalScrollBar();
-    std::cout<<"shown at X: " << bar->getX() << "\n";
-    std::cout<<"shown at Y: " << bar->getY() << "\n";
-    std::cout<<"with current width: " << getWidth() << "\n";
-    std::cout<<"with current height: " << getHeight() << "\n";
-
     scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
-    //viewport->setBounds(0,yOffset,getWidth(),getHeight()-yOffset-40);
+    viewport->setViewedComponent(display,false);
+    addAndMakeVisible(viewport);
     viewport->setBounds(0,100,getWidth(), getHeight()-2*yOffset);
-    
-    
     scale->setBounds(0, getHeight()-40, getWidth()-scrollBarThickness, 40);
     addAndMakeVisible(scale,false);
     
-    /*
-    ScrollBar* bar = viewport->getHorizontalScrollBar();
-    bar->setAutoHide(false);
-    bar->setColour(0, Colours::snow);
-    bar->setColour(1, Colours::snow);
-    bar->setColour(2, Colours::snow);
-    addAndMakeVisible(bar);
-     */
     update();
 }
 
@@ -109,46 +88,43 @@ void EvntTrigAvgCanvas::refreshState()
 
 void EvntTrigAvgCanvas::resized()
 {
-    std::cout<<"is vert shown?: "<< viewport->isVerticalScrollBarShown() << "\n";
-    ScrollBar* bar = viewport->getVerticalScrollBar();
-    std::cout<<"shown at X: " << bar->getX() << "\n";
-    std::cout<<"shown at Y: " << bar->getY() << "\n";
-    std::cout<<"with current width: " << getWidth() << "\n";
-    std::cout<<"with current height: " << getHeight() << "\n";
 
     int xOffset= 40;
     int yOffset = 50;
     int drawWidth = getWidth()-20-getWidth()/4;
-    //viewport->setBounds(0,yOffset,getWidth()-scrollBarThickness,getHeight()-yOffset);
-    viewport->setBounds(0,yOffset,getWidth(),getHeight()-yOffset);
-
-    //viewport->setBounds(0,100,getWidth(), getHeight()-2*yOffset);
-    display->setBounds(0,yOffset,getWidth()-scrollBarThickness, getHeight()-2*yOffset);
-    //display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-2*yOffset);
-    //display->setBounds(0,100,getWidth()-5, getHeight()-40);
+    viewport->setBounds(0,yOffset,getWidth(),getHeight()-2*yOffset);
+    if (display->getNumGraphs()>0)
+        display->setBounds(0,yOffset,getWidth()-scrollBarThickness,display->getNumGraphs()*40);
+    else
+        display->setBounds(0,yOffset,getWidth(),getHeight()-2*yOffset);
     scale->setBounds(20+30, getHeight()-40, getWidth()-20-getWidth()/4, 40);
     repaint();
 }
 
 void EvntTrigAvgCanvas::paint(Graphics& g)
 {
+    g.fillAll(Colours::darkgrey);
     
-    //g.fillAll(Colours::darkgrey);
-    g.fillAll(Colours::mediumorchid);
     int width=getWidth();
     int height=getHeight();
     int drawWidth = width-20-width/4;
     int xOffset= 20;
+    int yOffset = 50;
+    g.setColour(Colours::lightgrey);
+    g.fillRoundedRectangle(getWidth()-scrollBarThickness, yOffset, scrollBarThickness, height-2*yOffset, 4.0);
+
     g.setColour(Colours::snow);
-    g.drawText("Electrode",5, 5, width/8, 20, juce::Justification::left);
+    
+        g.drawText("Electrode",5, 5, width/8, 20, juce::Justification::left);
     g.drawText("Trials: " + String(processor->getLastTTLCalculated()),(xOffset+drawWidth)/2-50,5,100,20,Justification::centred);
-    g.drawText("Min.", width-180, 5, 60, 20, Justification::right);
-    g.drawText("Max", width-120, 5, 60, 20, Justification::right);
-    g.drawText("Mean", width-60, 5, 60, 20, Justification::right);
+    g.drawText("Min.", width-180-scrollBarThickness, 5, 60, 20, Justification::right);
+    g.drawText("Max", width-120-scrollBarThickness, 5, 60, 20, Justification::right);
+    g.drawText("Mean", width-60-scrollBarThickness, 5, 60, 20, Justification::right);
     removeChildComponent(scale);
     scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
     scale->setBounds(0, getHeight()-40, width-20, 40);
     addAndMakeVisible(scale,true);
+    repaint();
 }
 
 void EvntTrigAvgCanvas::refresh()
@@ -224,7 +200,7 @@ void EvntTrigAvgDisplay::resized()
 
 void EvntTrigAvgDisplay::paint(Graphics &g){
     //g.fillAll(Colours::darkgrey);
-    g.fillAll(Colours::paleturquoise);
+    //g.fillAll(Colours::firebrick);
     histoData = processor->getHistoData();
     minMaxMean = processor->getMinMaxMean();
     int width=getWidth();
@@ -239,12 +215,17 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     graphs.clear();
     int graphCount = 0;
     for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
-        for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
-            GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
-            graphs.add(graph);
-            graph->setBounds(0, 40*(graphCount), width-20, 40);
-            addAndMakeVisible(graph,false);
-            graphCount += 1;
+        GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][0],histoData[channelIt][0]);
+        graphs.add(graph);
+        graph->setBounds(0, 40*(graphCount), width-20, 40);
+        addAndMakeVisible(graph,false);
+        graphCount += 1;
+        for(int sortedId = 1 ; sortedId < histoData[channelIt].size() ; sortedId++){
+                GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID " + String(sortedId),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+                graphs.add(graph);
+                graph->setBounds(0, 40*(graphCount), width-20, 40);
+                addAndMakeVisible(graph,false);
+                graphCount += 1;
         }
     }
 
@@ -257,11 +238,9 @@ void EvntTrigAvgDisplay::refresh(){
     }
 }
 
-void EvntTrigAvgDisplay::mouseWheelMove(const MouseEvent&  e, const MouseWheelDetails&   wheel)
-{
-    viewport->mouseWheelMove(e.getEventRelativeTo(canvas), wheel);
+int EvntTrigAvgDisplay::getNumGraphs(){
+    return graphs.size();
 }
-
 //--------------------------------------------------------------------
 Timescale::Timescale(int wS, uint64 sR){
     windowSize = wS;
@@ -274,7 +253,7 @@ Timescale::~Timescale(){
 void Timescale::paint(Graphics& g){
     g.setColour(Colours::snow);
     // HG->setBounds(30,0,getWidth()-210,40);
-    int histogramLen = getWidth()-210-24;
+    int histogramLen = getWidth()-210-22;
     int vertLineLen = 20;
     int textStart = vertLineLen+5;
     g.drawHorizontalLine(0, 30, histogramLen+30);
@@ -391,7 +370,7 @@ void HistoGraph::clear(){
 }
 
 void HistoGraph::mouseMove(const MouseEvent &event){
-    int posX = event.getMouseDownX();
+    int posX = event.getMouseDownScreenX();
     if(histoData.size()>0){
          int valueY = histoData[float(posX)/float(getWidth())*float(histoData.size())];
         menu.clear();
