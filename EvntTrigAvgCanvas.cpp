@@ -48,11 +48,18 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     viewport->setViewedComponent(display,false);
     addAndMakeVisible(viewport);
     
+    int yOffset = 50;
+    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
+    viewport->setBounds(0,yOffset,getWidth()-scrollBarThickness,getHeight()-yOffset);
+    display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-2*yOffset);
+    scale->setBounds(20, getHeight()-40, getWidth()-20-scrollBarThickness, 40);
+    addAndMakeVisible(scale,false);
+    
     }
 
 EvntTrigAvgCanvas::~EvntTrigAvgCanvas()
 {
-
+    removeAllChildren();
 }
 
 void EvntTrigAvgCanvas::beginAnimation()
@@ -82,17 +89,19 @@ void EvntTrigAvgCanvas::refreshState()
 
 void EvntTrigAvgCanvas::resized()
 {
-    
     int xOffset= 40;
     int yOffset = 50;
     int drawWidth = getWidth()-20-getWidth()/4;
-    viewport->setBounds(0,yOffset,getWidth(),getHeight());
-    display->setBounds(0,100,getWidth()-5, getHeight()-2*yOffset);
+    viewport->setBounds(0,yOffset,getWidth()-scrollBarThickness,getHeight()-yOffset);
+    display->setBounds(0,100,getWidth(), getHeight()-2*yOffset);
+    //display->setBounds(0,100,getWidth()-5, getHeight()-40);
+    scale->setBounds(20+30, getHeight()-40, getWidth()-20-getWidth()/4, 40);
     repaint();
 }
 
 void EvntTrigAvgCanvas::paint(Graphics& g)
 {
+    
     g.fillAll(Colours::darkgrey);
     int width=getWidth();
     int height=getHeight();
@@ -104,26 +113,10 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
     g.drawText("Min.", width-180, 5, 60, 20, Justification::right);
     g.drawText("Max", width-120, 5, 60, 20, Justification::right);
     g.drawText("Mean", width-60, 5, 60, 20, Justification::right);
-    /*
-    int windowSize = processor->getWindowSize()/2;
-    
-    g.drawHorizontalLine(getHeight()-50, 50, getWidth()-230);
-    g.drawVerticalLine(50, getHeight()-50, getHeight()-20);
-    g.drawText(String(-windowSize/processor->getSampleRate()), 50, getHeight()-50, 80, 20, Justification::left);
-    
-    g.drawVerticalLine(getWidth()-230, getHeight()-50, getHeight()-20);
-    g.drawText(String(windowSize/processor->getSampleRate()), getWidth()-230, getHeight()-50, 80, 20, Justification::left);
-    
-    g.drawVerticalLine((50+getWidth()-230)/2, getHeight()-50, getHeight()-20);
-    g.drawText(String(0), (50+getWidth()-230)/2, getHeight()-50, 80, 20, Justification::left);
-    
-    g.drawVerticalLine((50+getWidth()-230)/4, getHeight()-50, getHeight()-20);
-    g.drawText(String(-(windowSize/processor->getSampleRate())/2), (50+getWidth()-230)/4, getHeight()-50, 80, 20, Justification::left);
-    
-    g.drawVerticalLine(3*(50+getWidth()-230)/4, getHeight()-50, getHeight()-20);
-    g.drawText(String((windowSize/processor->getSampleRate())/2), 3*(50+getWidth()-230)/4, getHeight()-50, 80, 20, Justification::left);
-  */
-   
+    removeChildComponent(scale);
+    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
+    scale->setBounds(20, getHeight()-40, width-20, 40);
+    addAndMakeVisible(scale,true);
 }
 
 void EvntTrigAvgCanvas::refresh()
@@ -166,18 +159,13 @@ EvntTrigAvgDisplay::EvntTrigAvgDisplay(EvntTrigAvgCanvas* c, Viewport* v, EvntTr
     channelColours[6]=Colour(217,46,171);
     channelColours[7]=Colour(217, 139,196);
     channelColours[8]=Colour(101,31,255);
-    channelColours[9]= Colour(141,111,181);
+    channelColours[9]=Colour(141,111,181);
     channelColours[10]=Colour(48,117,255);
     channelColours[11]=Colour(184,198,224);
     channelColours[12]=Colour(116,227,156);
     channelColours[13]=Colour(150,158,155);
     channelColours[14]=Colour(82,173,0);
     channelColours[15]=Colour(125,99,32);
-    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
-    scale->setBounds(20, getHeight()-40, getWidth()-20, 40);
-    addAndMakeVisible(scale,false);
-
-
 }
 
 EvntTrigAvgDisplay::~EvntTrigAvgDisplay(){
@@ -199,11 +187,9 @@ void EvntTrigAvgDisplay::resized()
         graphs[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
         graphs[i]->resized();
     }
-    scale->setBounds(20+30, getHeight()-40, width-20-width/4, 40);
 }
 
 void EvntTrigAvgDisplay::paint(Graphics &g){
-    //if(processor->shouldReadHistoData()){
     g.fillAll(Colours::darkgrey);
     histoData = processor->getHistoData();
     minMaxMean = processor->getMinMaxMean();
@@ -217,17 +203,17 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     std::vector<String> labels = processor->getElectrodeLabels();
     deleteAllChildren();
     graphs.clear();
+    int graphCount = 0;
     for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
         for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
             GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
             graphs.add(graph);
-            graph->setBounds(20, 40*(channelIt+sortedId), width-20, 40);
+            graph->setBounds(20, 40*(graphCount), width-20, 40);
             addAndMakeVisible(graph,false);
+            graphCount += 1;
         }
     }
-    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
-    scale->setBounds(20, getHeight()-40, width-20, 40);
-    addAndMakeVisible(scale,false);
+
     repaint();
 }
 
@@ -249,10 +235,10 @@ Timescale::~Timescale(){
 void Timescale::paint(Graphics& g){
     g.setColour(Colours::snow);
     // HG->setBounds(30,0,getWidth()-210,40);
-    int histogramLen = getWidth()-210-30;
+    int histogramLen = getWidth()-210-10;
     int vertLineLen = 20;
     int textStart = vertLineLen+5;
-    g.drawHorizontalLine(0, 0, 30+histogramLen);
+    g.drawHorizontalLine(0, 30, histogramLen+30);
     
     g.drawVerticalLine(30, 0, vertLineLen);
     g.drawText(String(-1000.0*float(windowSize)/float(sampleRate)) + " ms", 0, textStart, 60, 10, Justification::centred);

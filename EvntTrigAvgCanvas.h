@@ -91,7 +91,7 @@ private:
     int triggerChannel = NULL;
     unsigned long spikeBufferSize = 0;
     unsigned long ttlBufferSize = 0;
-    
+    Timescale* scale;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EvntTrigAvgCanvas);
 
 };
@@ -116,7 +116,6 @@ private:
     Viewport* viewport;
     Array<GraphUnit*> graphs;
     PopupMenu menus;
-    Timescale* scale;
     juce::Colour channelColours[16];
     std::vector<std::vector<std::vector<uint64>>> histoData;
     std::vector<std::vector<std::vector<float>>> minMaxMean;
