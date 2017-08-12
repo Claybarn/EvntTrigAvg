@@ -268,10 +268,12 @@ uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize,
         return startBin;
     }
     else if (dataPoint < (startBin+binsToSearch)*binSize){ // if in first half of search range
-        return binDataPoint(startBin,startBin+(binsToSearch-1),binSize,dataPoint);
+        //return binDataPoint(startBin,startBin+(binsToSearch-1),binSize,dataPoint);
+        return binDataPoint(startBin,startBin+(binsToSearch),binSize,dataPoint);
     }
     else if (dataPoint >= (startBin+binsToSearch) * binSize){ // if in second half of search range
-        return binDataPoint(startBin+(binsToSearch-1),endBin,binSize,dataPoint);
+        //return binDataPoint(startBin+(binsToSearch-1),endBin,binSize,dataPoint);
+        return binDataPoint(startBin+(binsToSearch),endBin,binSize,dataPoint);
     }
     else{
         return NULL;
