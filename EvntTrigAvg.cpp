@@ -81,6 +81,7 @@ void EvntTrigAvg::updateSettings(){
     if(spikeData.size()!=getTotalSpikeChannels()){
         spikeData.resize(getTotalSpikeChannels());
         minMaxMean.resize(getTotalSpikeChannels());
+        //idForElect.resize(getTotalDataChannels());
     }
     for(int electrodeIt = 0 ; electrodeIt < spikeData.size() ; electrodeIt++){
         if(spikeData[electrodeIt].size()<1){
@@ -138,19 +139,27 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         int chanIDX = chanInfo[0].channelIDX;
         int sortedID = newSpike->getSortedID();
         int electrode = electrodeMap[chanIDX];
-        if (sortedID+1>spikeData[electrode].size()){
-            spikeData[electrode].resize(sortedID+1);
+    // still adding too many graphs (Was because resizing to sortedID
+        
+        if(sortedID>idIndex.size()){
+            idIndex.resize(sortedID);
+            idIndex[sortedID-1]=spikeData[electrode].size();
+            spikeData[electrode].resize(spikeData[electrode].size()+1);
+            minMaxMean[electrode].push_back({0,0,0});
         }
-        if (sortedID+1>minMaxMean[electrode].size()){
+       
+        
+        /*if (sortedID+1>minMaxMean[electrode].size()){
             minMaxMean[electrode].resize(sortedID+1);
             minMaxMean[electrode][sortedID]={0,0,0};
         }
+         */
         if(spikeData[electrode][sortedID].size() == spikeData[electrode][sortedID].capacity())
             spikeData[electrode][sortedID].reserve(spikeData[electrode][sortedID].size()+200);
-        spikeData[electrode][sortedID].push_back(newSpike->getTimestamp());
+        spikeData[electrode][0].push_back(newSpike->getTimestamp());
         if (sortedID>0)
-            spikeData[electrode][0].push_back(newSpike->getTimestamp());
-        
+            spikeData[electrode][idIndex[sortedID-1]].push_back(newSpike->getTimestamp());
+
     }
 }
 
@@ -219,24 +228,22 @@ std::vector<std::vector<std::vector<uint64>>> EvntTrigAvg::processSpikeData(std:
     for (int channelIterator = 0 ; channelIterator < getTotalSpikeChannels() ; channelIterator++){
         processedSpikeData[channelIterator].resize(spikeData[channelIterator].size());
         for (int sortedIdIterator = 0 ; sortedIdIterator < spikeData[channelIterator].size() ; sortedIdIterator++){
-            //if(spikeData[channelIterator][sortedIdIterator].size()>0){
-                std::vector<uint64> toAdd = createHistogramData(spikeData[channelIterator][sortedIdIterator],ttlData);
-                if(minMaxMean.size()<channelIterator+1)
-                    minMaxMean.resize(channelIterator+1);
-                if(minMaxMean[channelIterator].size()<sortedIdIterator+1)
-                    minMaxMean[channelIterator].resize(channelIterator+1);
-                if(minMaxMean[channelIterator][sortedIdIterator].size()<3)
-                    minMaxMean[channelIterator][sortedIdIterator].resize(3);
-                minMaxMean[channelIterator][sortedIdIterator][0]=findMin(toAdd);
-                minMaxMean[channelIterator][sortedIdIterator][1]=findMax(toAdd);
-                minMaxMean[channelIterator][sortedIdIterator][2]=findMean(toAdd);
-                for (int i = 0 ; i < toAdd.size() ; i++){
-                    if (i >= processedSpikeData.size()){
-                        processedSpikeData.resize(i+1);
-                    }
-                    processedSpikeData[channelIterator][sortedIdIterator].push_back(toAdd[i]);
-                }
-            //}
+            std::vector<uint64> toAdd = createHistogramData(spikeData[channelIterator][sortedIdIterator],ttlData);
+            if(minMaxMean.size()<channelIterator+1)
+                minMaxMean.resize(channelIterator+1);
+            if(minMaxMean[channelIterator].size()<sortedIdIterator+1)
+                minMaxMean[channelIterator].resize(channelIterator+1);
+            if(minMaxMean[channelIterator][sortedIdIterator].size()<3)
+                minMaxMean[channelIterator][sortedIdIterator].resize(3);
+            minMaxMean[channelIterator][sortedIdIterator][0]=findMin(toAdd);
+            minMaxMean[channelIterator][sortedIdIterator][1]=findMax(toAdd);
+            minMaxMean[channelIterator][sortedIdIterator][2]=findMean(toAdd);
+            for (int i = 0 ; i < toAdd.size() ; i++){
+                /*if (i >= processedSpikeData.size()){
+                    processedSpikeData.resize(i+1);
+                }*/
+                processedSpikeData[channelIterator][sortedIdIterator].push_back(toAdd[i]);
+            }
         }
     }
     return processedSpikeData;
@@ -260,7 +267,7 @@ std::vector<uint64> EvntTrigAvg::createHistogramData(std::vector<uint64> spikeDa
 }
 
 
-// Returns the bin a data point belongs to given the very first value covered by the bins, the very last value covered by then bins, bin size and the data point to bin, currently only works for positive numbers (can get around by adding minimum value to all values
+// Returns the bin a data point belongs to given the very first bin, the very last bin, bin size and the data point to bin, currently only works for positive numbers (can get around by adding minimum value to all values
 uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint){
     uint64 binsInRange = (endBin-startBin);
     uint64 binsToSearch = binsInRange/2;

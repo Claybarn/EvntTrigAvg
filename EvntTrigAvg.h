@@ -98,6 +98,7 @@ public:
 private:
     std::atomic<int> triggerEvent;
     std::atomic<int> triggerChannel;
+
     int numChannels = 0;
     bool readHistoData = false;
     bool recalc = false;
@@ -112,6 +113,7 @@ private:
     std::vector<std::vector<std::vector<float>>> minMaxMean;
     std::vector<int> electrodeMap;
     std::vector<String> electrodeLabels;
+    std::vector<int> idIndex; //electrode, list of IDs
     //float sampleRate = 0;
     
     

@@ -214,7 +214,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     deleteAllChildren();
     graphs.clear();
     int graphCount = 0;
-    std::cout<<"histoDatasize: " << histoData.size()<<"\n";
+
     for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
         /*
         GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][0],histoData[channelIt][0]);
@@ -223,8 +223,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
         addAndMakeVisible(graph,false);
         graphCount += 1;
          */
-        std::cout<<"histoData chanit size: " << histoData[channelIt].size()<<"\n";
-
+        
         for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
                 //GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID " + String(sortedId),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
             GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
