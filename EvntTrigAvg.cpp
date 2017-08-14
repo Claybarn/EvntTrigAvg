@@ -262,11 +262,21 @@ std::vector<uint64> EvntTrigAvg::createHistogramData(std::vector<uint64> spikeDa
 
 // Returns the bin a data point belongs to given the very first value covered by the bins, the very last value covered by then bins, bin size and the data point to bin, currently only works for positive numbers (can get around by adding minimum value to all values
 uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint){
-    uint64 binsInRange = (endBin-startBin)+1;
+    uint64 binsInRange = (endBin-startBin);
     uint64 binsToSearch = binsInRange/2;
     if (binsToSearch <= 1){
-        return startBin;
+        
+        if (dataPoint < (startBin+binsToSearch)*binSize){
+            return startBin;
+        }
+        else if (dataPoint < (startBin+1+binsToSearch) * binSize){
+            return startBin+1;
+        }
+        else{
+            return startBin+2;
+        }
     }
+
     else if (dataPoint < (startBin+binsToSearch)*binSize){ // if in first half of search range
         //return binDataPoint(startBin,startBin+(binsToSearch-1),binSize,dataPoint);
         return binDataPoint(startBin,startBin+(binsToSearch),binSize,dataPoint);
