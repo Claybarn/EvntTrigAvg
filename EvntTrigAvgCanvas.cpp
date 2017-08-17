@@ -46,7 +46,7 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     processor = n;
     display = new EvntTrigAvgDisplay(this, viewport, n);
     display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-2*yOffset);
-    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
+    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,binSize);
     viewport->setViewedComponent(display,false);
     addAndMakeVisible(viewport);
     viewport->setBounds(0,100,getWidth(), getHeight()-2*yOffset);
@@ -121,7 +121,7 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
     g.drawText("Max", width-120-scrollBarThickness, 5, 60, 20, Justification::right);
     g.drawText("Mean", width-60-scrollBarThickness, 5, 60, 20, Justification::right);
     removeChildComponent(scale);
-    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate());
+    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,binSize);
     scale->setBounds(0, getHeight()-40, width-20, 40);
     addAndMakeVisible(scale,true);
     repaint();
@@ -150,6 +150,17 @@ void EvntTrigAvgCanvas::buttonClicked(Button* button)
      repaint();
 }
 
+void EvntTrigAvgCanvas::setBin(int bin_){
+    bin = bin_;
+}
+
+void EvntTrigAvgCanvas::setBinSize(int binSize_){
+    binSize = binSize_;
+}
+
+void EvntTrigAvgCanvas::setData(int data_){
+    data=data_;
+}
 
 //-----------------------------------------------------------------------------------------------------------------//
 
@@ -181,11 +192,11 @@ EvntTrigAvgDisplay::~EvntTrigAvgDisplay(){
     deleteAllChildren();
 }
 
-void EvntTrigAvgDisplay::visibleAreaChanged (const Rectangle<int>& newVisibleArea){
+void EvntTrigAvgDisplay::visibleAreaChanged(const Rectangle<int>& newVisibleArea){
     
 }
 
-void EvntTrigAvgDisplay::viewedComponentChanged (Component* newComponent){
+void EvntTrigAvgDisplay::viewedComponentChanged(Component* newComponent){
     
 }
 
@@ -226,11 +237,11 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
         
         for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
                 //GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID " + String(sortedId),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
-            GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+            GraphUnit* graph = new GraphUnit(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
             
                 graphs.add(graph);
                 graph->setBounds(0, 40*(graphCount), width-20, 40);
-                addAndMakeVisible(graph,false);
+                addAndMakeVisible(graph,true);
                 graphCount += 1;
         }
     }
@@ -248,9 +259,12 @@ int EvntTrigAvgDisplay::getNumGraphs(){
     return graphs.size();
 }
 //--------------------------------------------------------------------
-Timescale::Timescale(int wS, uint64 sR){
-    windowSize = wS;
-    sampleRate = sR;
+Timescale::Timescale(int windowSize_, uint64 sampleRate_, int data_, int bin_,int binSize_){
+    windowSize = windowSize_;
+    sampleRate = sampleRate_;
+    data = data_;
+    bin = bin_;
+    binSize = binSize_;
 }
 Timescale::~Timescale(){
     
@@ -281,21 +295,37 @@ void Timescale::paint(Graphics& g){
     g.drawVerticalLine(histogramLen+30, 0, vertLineLen);
     g.drawText(String(1000.0*float(windowSize/2)/float(sampleRate)) + " ms", histogramLen, textStart, 60, 10, Justification::centred);
     
-
+    g.drawText("Values: " + String(bin*binSize) + " - " + String((bin+1)*binSize) + " Counts: " + String(data),histogramLen+30, 5, getWidth()-(histogramLen+30), getHeight(), Justification::right);
 }
+
 void Timescale::resized(){
     
 }
- 
+
+void Timescale::update(int windowSize_, uint64 sampleRate_){
+    windowSize=windowSize_;
+    sampleRate=sampleRate_;
+}
+
+void inline Timescale::setBin(int bin_){
+    bin = bin_;
+}
+void inline Timescale::setData(int data_){
+    data = data_;
+}
+void inline Timescale::setBinSize(int binSize_){
+    binSize = binSize_;
+}
+
 //--------------------------------------------------------------------
 
 
-GraphUnit::GraphUnit(PopupMenu men, juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f){
+GraphUnit::GraphUnit(EvntTrigAvgCanvas* canvas_,juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f){
     color = c;
     LD = new LabelDisplay(c,n);
     LD->setBounds(0,0,30,40);
     addAndMakeVisible(LD,false);
-    HG = new HistoGraph(men,c, s[1], f);
+    HG = new HistoGraph(canvas_,c, s[1], f);
     HG->setBounds(30,0,getWidth()-210,40);
     addAndMakeVisible(HG,false);
     SD = new StatDisplay(c,s);
@@ -333,11 +363,12 @@ void LabelDisplay::resized(){
 
 //----------------
 
-HistoGraph::HistoGraph(PopupMenu men, juce::Colour c, int m, std::vector<uint64> f){
+HistoGraph::HistoGraph(EvntTrigAvgCanvas* canvas_, juce::Colour c, int m, std::vector<uint64> f){
     //menu = &men;
     color = c;
     histoData = f;
     max = m;
+    canvas = canvas_;
     //setMouseClickGrabsKeyboardFocus(true);
 }
 
@@ -378,10 +409,14 @@ void HistoGraph::clear(){
 void HistoGraph::mouseMove(const MouseEvent &event){
     int posX = event.getMouseDownScreenX();
     if(histoData.size()>0){
-         int valueY = histoData[float(posX)/float(getWidth())*float(histoData.size())];
-        menu.clear();
+        int valueY = histoData[float(posX)/float(getWidth())*float(histoData.size())];
+        canvas->setData(valueY);
+        canvas->setBin(float(posX)/float(getWidth())*float(histoData.size()));
+        canvas->repaint();
+        /*menu.clear();
         menu.addItem(1, "Bin: " + String(int(float(posX)/float(getWidth())*float(histoData.size()))+1)+ " Counts: " + String(valueY),false);
         menu.showAt(this);
+         */
     
     }
 }

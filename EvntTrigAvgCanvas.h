@@ -70,12 +70,14 @@ public:
 
     void buttonClicked(Button* button);
 
-    void startRecording() { } // unused
-    void stopRecording() { } // unused
-    
-       EvntTrigAvg* processor;
+    void startRecording() { }; // unused
+    void stopRecording() { }; // unused
+    void setBin(int bin_);
+    void setBinSize(int binSize_);
+    void setData(int data_);
+    EvntTrigAvg* processor;
 
-   ;
+   
    // ScopedPointer<UtilityButton>
 
 private:
@@ -91,6 +93,9 @@ private:
     int triggerChannel = NULL;
     unsigned long spikeBufferSize = 0;
     unsigned long ttlBufferSize = 0;
+    int bin = 0;
+    int binSize = 0;
+    int data = 0;
     Timescale* scale;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EvntTrigAvgCanvas);
 
@@ -116,11 +121,11 @@ private:
     EvntTrigAvgCanvas* canvas;
     Viewport* viewport;
     Array<GraphUnit*> graphs;
-    PopupMenu menus;
     juce::Colour channelColours[16];
     std::vector<std::vector<std::vector<uint64>>> histoData;
     std::vector<std::vector<std::vector<float>>> minMaxMean;
     int border = 20;
+    
 };
 
 //---------------------------
@@ -128,22 +133,33 @@ private:
 class Timescale : public Component
 {
 public:
-    Timescale(int windowSize, uint64 sR);
+    Timescale(int windowSize_, uint64 sampleRate_, int data = 0, int bin = 0 ,int binSize = 0 );
     ~Timescale();
     void paint(Graphics& g);
     void resized();
+    void update(int windowSize, uint64 sR);
+    void setBin(int bin_);
+    void setData(int data_);
+    void setBinSize(int binSize_);
 private:
     int windowSize;
     uint64 sampleRate;
+    int bin = 0;
+    int binSize = 0;
+    int data = 0;
+    int lowerBin = 0;
+    int upperBin = 0;
+    
 };
 
 
 //---------------------------
 
+
 class GraphUnit : public Component
 {
 public:
-    GraphUnit(PopupMenu men, juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f);
+    GraphUnit(EvntTrigAvgCanvas* canvas_,juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f);
     ~GraphUnit();
     void paint(Graphics& g);
     void resized();
@@ -174,7 +190,7 @@ class HistoGraph : public Component
 {
     
 public:
-    HistoGraph(PopupMenu men, juce::Colour c, int m, std::vector<uint64> h);
+    HistoGraph(EvntTrigAvgCanvas* canvas_,juce::Colour c, int m, std::vector<uint64> h);
     ~HistoGraph();
     
     void paint(Graphics& g);
@@ -192,9 +208,8 @@ private:
     Colour color;
     int max;
     std::vector<uint64> histoData;
-    PopupMenu menu;
     int valueY=0;
-    
+    EvntTrigAvgCanvas* canvas;
     
 };
 

@@ -112,6 +112,7 @@ void EvntTrigAvg::process(AudioSampleBuffer& buffer){
         recalc = true;
     }
     if(recalc){
+        //std::cout<<"recalculating \n";
         histogramData=processSpikeData(spikeData, ttlTimestampBuffer);
         lastTTLCalculated+=1;
         recalc=false;
@@ -154,11 +155,15 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
             minMaxMean[electrode][sortedID]={0,0,0};
         }
          */
-        if(spikeData[electrode][sortedID].size() == spikeData[electrode][sortedID].capacity())
-            spikeData[electrode][sortedID].reserve(spikeData[electrode][sortedID].size()+200);
+        int relativeSortedID = 0;
+        if (sortedID>0)
+            relativeSortedID = idIndex[sortedID-1];
+        
+        if(spikeData[electrode][relativeSortedID].size() == spikeData[electrode][sortedID].capacity())
+            spikeData[electrode][relativeSortedID].reserve(spikeData[electrode][sortedID].size()+200);
         spikeData[electrode][0].push_back(newSpike->getTimestamp());
         if (sortedID>0)
-            spikeData[electrode][idIndex[sortedID-1]].push_back(newSpike->getTimestamp());
+            spikeData[electrode][relativeSortedID].push_back(newSpike->getTimestamp());
 
     }
 }
