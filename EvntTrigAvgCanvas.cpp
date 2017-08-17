@@ -225,7 +225,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
     deleteAllChildren();
     graphs.clear();
     int graphCount = 0;
-
+    std::vector<std::vector<int>> electrodeSortedId  = processor->getElectrodeSortedId();
     for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
         /*
         GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][0],histoData[channelIt][0]);
@@ -236,13 +236,18 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
          */
         
         for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
-                //GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID " + String(sortedId),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
-            GraphUnit* graph = new GraphUnit(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
-            
-                graphs.add(graph);
-                graph->setBounds(0, 40*(graphCount), width-20, 40);
-                addAndMakeVisible(graph,true);
-                graphCount += 1;
+            //GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID " + String(sortedId),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+            GraphUnit* graph;
+            if(sortedId==0)
+                graph = new GraphUnit(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+            else{
+                String ID;
+                graph = new GraphUnit(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID "+String(electrodeSortedId[channelIt][sortedId]),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+            }
+            graphs.add(graph);
+            graph->setBounds(0, 40*(graphCount), width-20, 40);
+            addAndMakeVisible(graph,true);
+            graphCount += 1;
         }
     }
 
@@ -320,15 +325,15 @@ void inline Timescale::setBinSize(int binSize_){
 //--------------------------------------------------------------------
 
 
-GraphUnit::GraphUnit(EvntTrigAvgCanvas* canvas_,juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f){
-    color = c;
-    LD = new LabelDisplay(c,n);
+GraphUnit::GraphUnit(EvntTrigAvgCanvas* canvas_,juce::Colour color_, String name_, std::vector<float> stats_, std::vector<uint64> data_){
+    color = color_;
+    LD = new LabelDisplay(color_,name_);
     LD->setBounds(0,0,30,40);
     addAndMakeVisible(LD,false);
-    HG = new HistoGraph(canvas_,c, s[1], f);
+    HG = new HistoGraph(canvas_,color_, stats_[1], data_);
     HG->setBounds(30,0,getWidth()-210,40);
     addAndMakeVisible(HG,false);
-    SD = new StatDisplay(c,s);
+    SD = new StatDisplay(color_,stats_);
     SD->setBounds(getWidth()-180,0,180,40);
     addAndMakeVisible(SD,false);
 }

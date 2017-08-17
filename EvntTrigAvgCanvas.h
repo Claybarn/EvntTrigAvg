@@ -159,7 +159,7 @@ private:
 class GraphUnit : public Component
 {
 public:
-    GraphUnit(EvntTrigAvgCanvas* canvas_,juce::Colour c, String n, std::vector<float> s, std::vector<uint64> f);
+    GraphUnit(EvntTrigAvgCanvas* canvas_,juce::Colour color_, String name_, std::vector<float> stats_, std::vector<uint64> data_);
     ~GraphUnit();
     void paint(Graphics& g);
     void resized();

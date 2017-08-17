@@ -94,7 +94,7 @@ public:
     std::vector<int> createElectrodeMap();
     std::vector<String> createElectrodeLabels();
     std::vector<String> getElectrodeLabels();
-    
+    std::vector<std::vector<int>> getElectrodeSortedId();
 private:
     std::atomic<int> triggerEvent;
     std::atomic<int> triggerChannel;
@@ -106,6 +106,7 @@ private:
     uint64 windowSize;
     uint64 binSize;
     
+    //TODO make a struct to move all the information in a more intuitive way
     
     std::vector<uint64> ttlTimestampBuffer;
     std::vector<std::vector<std::vector<uint64>>> spikeData;// channel.sortedID.spikeInstance.timestamp
@@ -113,7 +114,8 @@ private:
     std::vector<std::vector<std::vector<float>>> minMaxMean;
     std::vector<int> electrodeMap;
     std::vector<String> electrodeLabels;
-    std::vector<int> idIndex; //electrode, list of IDs
+    std::vector<int> idIndex; //sorted ID, electrode
+    std::vector<std::vector<int>> electrodeSortedId;
     //float sampleRate = 0;
     
     

@@ -81,6 +81,7 @@ void EvntTrigAvg::updateSettings(){
     if(spikeData.size()!=getTotalSpikeChannels()){
         spikeData.resize(getTotalSpikeChannels());
         minMaxMean.resize(getTotalSpikeChannels());
+        electrodeSortedId.resize(getTotalSpikeChannels());
         //idForElect.resize(getTotalDataChannels());
     }
     for(int electrodeIt = 0 ; electrodeIt < spikeData.size() ; electrodeIt++){
@@ -141,14 +142,22 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         int sortedID = newSpike->getSortedID();
         int electrode = electrodeMap[chanIDX];
     // still adding too many graphs (Was because resizing to sortedID
-        
         if(sortedID>idIndex.size()){
             idIndex.resize(sortedID);
             idIndex[sortedID-1]=spikeData[electrode].size();
             spikeData[electrode].resize(spikeData[electrode].size()+1);
             minMaxMean[electrode].push_back({0,0,0});
         }
-       
+        bool newID = true;
+        for(int i = 0 ; i < electrodeSortedId[chanIDX].size() ; i++){
+           if(sortedID == electrodeSortedId[chanIDX][i])
+               newID=false;
+        }
+        if(newID)
+            electrodeSortedId[chanIDX].push_back(sortedID);
+        
+
+
         
         /*if (sortedID+1>minMaxMean[electrode].size()){
             minMaxMean[electrode].resize(sortedID+1);
@@ -367,4 +376,6 @@ std::vector<std::vector<std::vector<float>>> EvntTrigAvg::getMinMaxMean(){
 std::vector<String> EvntTrigAvg::getElectrodeLabels(){
     return electrodeLabels;
 }
-
+std::vector<std::vector<int>> EvntTrigAvg::getElectrodeSortedId(){
+    return electrodeSortedId;
+}
