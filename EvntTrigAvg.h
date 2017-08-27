@@ -47,15 +47,12 @@ public:
     /** destructor */
     ~EvntTrigAvg();
 
-    
 
     // PROCESSOR METHODS //
 
     void handleEvent (const EventChannel* eventInfo, const MidiMessage& event, int sampleNum) override;
     void handleSpike(const SpikeChannel* channelInfo, const MidiMessage& event, int samplePosition) override;
 
-    /** Processes an incoming continuous buffer and places new
-        spikes into the event buffer. */
     void process(AudioSampleBuffer& buffer) override;
 
     /** Used to alter parameters of data acquisition. */
@@ -81,24 +78,27 @@ public:
     uint64 getBinSize();
 
     //create histogram data
-    std::vector<uint64> createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData);
+    uint64* createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData);
     uint64 binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint);
-    std::vector<std::vector<std::vector<uint64>>> processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData);
-    std::vector<uint64> binCount(std::vector<uint64> binData, uint64 numberOfBins);
+    void processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData);
+    uint64* binCount(std::vector<uint64> binData, uint64 numberOfBins);
     std::vector<std::vector<std::vector<uint64>>> getHistoData();
     bool shouldReadHistoData();
-    int findMin(std::vector<uint64> data);
-    int findMax(std::vector<uint64> data);
-    float findMean(std::vector<uint64> data);
+    int findMin(std::vector<uint64> data_);
+    int findMax(std::vector<uint64> data_);
+    float findMean(std::vector<uint64> data_);
     std::vector<std::vector<std::vector<float>>> getMinMaxMean();
     std::vector<int> createElectrodeMap();
     std::vector<String> createElectrodeLabels();
     std::vector<String> getElectrodeLabels();
     std::vector<std::vector<int>> getElectrodeSortedId();
 private:
+    void initializeHistogramArray();
+    void initializeMinMaxMean();
     std::atomic<int> triggerEvent;
     std::atomic<int> triggerChannel;
 
+    uint64 bins[1000]; // allocate space for 1000 bins
     int numChannels = 0;
     bool readHistoData = false;
     bool recalc = false;
