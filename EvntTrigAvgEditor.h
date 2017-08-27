@@ -71,7 +71,7 @@ private:
         unsigned int eventIndex;
         unsigned int channel;
     };
-    Array<EventSources> eventSourceArray;
+    std::vector<EventSources> eventSourceArray;
     
     //  ComboBox* electrodeTypes;
     EvntTrigAvg* processor;
