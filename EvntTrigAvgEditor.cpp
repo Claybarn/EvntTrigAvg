@@ -186,7 +186,7 @@ void EvntTrigAvgEditor::updateSettings()
                 name = event->getSourceName() + " (TTL" + String(c+1) + ")";
                 //name = event->getSourceName() + " (Spike" + String(c+1) + ")";
 
-                eventSourceArray.add(s);
+                eventSourceArray.push_back(s);
                 triggerChannel->addItem(name, nextItem++);
             }
         }
