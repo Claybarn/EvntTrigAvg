@@ -45,11 +45,11 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     int yOffset = 50;
     processor = n;
     display = new EvntTrigAvgDisplay(this, viewport, n);
-    display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-2*yOffset);
+    display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-yOffset-40);
     scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,binSize);
     viewport->setViewedComponent(display,false);
     addAndMakeVisible(viewport);
-    viewport->setBounds(0,100,getWidth(), getHeight()-2*yOffset);
+    viewport->setBounds(0,100,getWidth(), getHeight()-yOffset-40);
     scale->setBounds(0, getHeight()-40, getWidth()-scrollBarThickness, 40);
     addAndMakeVisible(scale,false);
     
@@ -92,12 +92,12 @@ void EvntTrigAvgCanvas::resized()
     int xOffset= 40;
     int yOffset = 50;
     int drawWidth = getWidth()-20-getWidth()/4;
-    viewport->setBounds(0,yOffset,getWidth(),getHeight()-2*yOffset);
+    viewport->setBounds(0,yOffset,getWidth(),getHeight()-yOffset-40);
     if (display->getNumGraphs()>0)
         display->setBounds(0,yOffset,getWidth()-scrollBarThickness,display->getNumGraphs()*40);
     else
-        display->setBounds(0,yOffset,getWidth(),getHeight()-2*yOffset);
-    scale->setBounds(20+30, getHeight()-40, getWidth()-20-getWidth()/4, 40);
+        display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-yOffset-40);
+    scale->setBounds(0, getHeight()-40, getWidth()-scrollBarThickness, 40);
     repaint();
 }
 
@@ -121,8 +121,8 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
     g.drawText("Max", width-120-scrollBarThickness, 5, 60, 20, Justification::right);
     g.drawText("Mean", width-60-scrollBarThickness, 5, 60, 20, Justification::right);
     removeChildComponent(scale);
-    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,binSize);
-    scale->setBounds(0, getHeight()-40, width-20, 40);
+    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,processor->getBinSize());
+    scale->setBounds(0, getHeight()-40, width-scrollBarThickness, 40);
     addAndMakeVisible(scale,true);
     repaint();
 }
@@ -131,7 +131,6 @@ void EvntTrigAvgCanvas::refresh()
 {
     // called every 10 Hz
     display->refresh(); // dont know if this ever gets called
-
     repaint();
 }
 
@@ -185,7 +184,6 @@ EvntTrigAvgDisplay::EvntTrigAvgDisplay(EvntTrigAvgCanvas* c, Viewport* v, EvntTr
     channelColours[13]=Colour(150,158,155);
     channelColours[14]=Colour(82,173,0);
     channelColours[15]=Colour(125,99,32);
-    
 }
 
 EvntTrigAvgDisplay::~EvntTrigAvgDisplay(){
@@ -210,33 +208,18 @@ void EvntTrigAvgDisplay::resized()
 }
 
 void EvntTrigAvgDisplay::paint(Graphics &g){
-    //g.fillAll(Colours::darkgrey);
-    //g.fillAll(Colours::firebrick);
     histoData = processor->getHistoData();
     minMaxMean = processor->getMinMaxMean();
     int width=getWidth();
     int height=getHeight();
     g.setColour(Colours::snow);
-    int yFact = -2;
-    int xOffset= 20;
-    int drawWidth = width-20-width/4;
-    int drawHeight = 40;
     std::vector<String> labels = processor->getElectrodeLabels();
     deleteAllChildren();
     graphs.clear();
     int graphCount = 0;
     std::vector<std::vector<int>> electrodeSortedId  = processor->getElectrodeSortedId();
     for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
-        /*
-        GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][0],histoData[channelIt][0]);
-        graphs.add(graph);
-        graph->setBounds(0, 40*(graphCount), width-20, 40);
-        addAndMakeVisible(graph,false);
-        graphCount += 1;
-         */
-        
         for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
-            //GraphUnit* graph = new GraphUnit(menus,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID " + String(sortedId),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
             GraphUnit* graph;
             if(sortedId==0)
                 graph = new GraphUnit(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
@@ -244,7 +227,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
                 String ID;
                 graph = new GraphUnit(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID "+String(electrodeSortedId[channelIt][sortedId]),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
             }
-            graphs.add(graph);
+            graphs.push_back(graph);
             graph->setBounds(0, 40*(graphCount), width-20, 40);
             addAndMakeVisible(graph,true);
             graphCount += 1;
@@ -277,10 +260,19 @@ Timescale::~Timescale(){
 
 void Timescale::paint(Graphics& g){
     g.setColour(Colours::snow);
-    // HG->setBounds(30,0,getWidth()-210,40);
-    int histogramLen = getWidth()-210-22;
+    //graphs[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
+    //HG->setBounds(30,0,getWidth()-210,40);
+    /*
+     LD->setBounds(0,0,30,40);
+     SD->setBounds(getWidth()-180,0,180,40);
+     HG->setBounds(30,0,getWidth()-210,40);
+     */
+    int histogramLen = getWidth()-230;
+    //int histogramLen = getWidth()-20-getWidth()/4;
     int vertLineLen = 20;
     int textStart = vertLineLen+5;
+
+
     g.drawHorizontalLine(0, 30, histogramLen+30);
     
     g.drawVerticalLine(30, 0, vertLineLen);
@@ -300,7 +292,7 @@ void Timescale::paint(Graphics& g){
     g.drawVerticalLine(histogramLen+30, 0, vertLineLen);
     g.drawText(String(1000.0*float(windowSize/2)/float(sampleRate)) + " ms", histogramLen, textStart, 60, 10, Justification::centred);
     
-    g.drawText("Values: " + String(bin*binSize) + " - " + String((bin+1)*binSize) + " Counts: " + String(data),histogramLen+30, 5, getWidth()-(histogramLen+30), getHeight(), Justification::right);
+    g.drawText(String(1000*float(bin*binSize)/float(sampleRate)) + " - " + String(1000*(float(bin+1)*binSize)/float(sampleRate)) + " ms, Spikes: " + String(data),histogramLen+30, 5, getWidth()-(histogramLen+30), getHeight(), Justification::right);
 }
 
 void Timescale::resized(){
@@ -368,10 +360,10 @@ void LabelDisplay::resized(){
 
 //----------------
 
-HistoGraph::HistoGraph(EvntTrigAvgCanvas* canvas_, juce::Colour c, int m, std::vector<uint64> f){
+HistoGraph::HistoGraph(EvntTrigAvgCanvas* canvas_, juce::Colour c, int m, std::vector<uint64> histoData_){
     //menu = &men;
     color = c;
-    histoData = f;
+    histoData = histoData_;
     max = m;
     canvas = canvas_;
     //setMouseClickGrabsKeyboardFocus(true);
@@ -385,13 +377,15 @@ void HistoGraph::paint(Graphics& g){
     g.setColour(Colours::snow);
     g.setOpacity(0.5);
     g.drawVerticalLine(getWidth()/2,5, getHeight());
-
     g.setColour(color);
+    
     for (int i = 1 ; i < histoData.size() ; i++){
-        if(max!=0)
-            g.drawLine((i-1)*getWidth()/histoData.size(),getHeight()-(histoData.operator[](i-1)*getHeight()/max),(i)*getWidth()/histoData.size(),getHeight()-(histoData.operator[](i)*getHeight()/max));
+        if(max!=0){
+            g.drawLine(float(i-1)*float(getWidth())/float(histoData.size()),getHeight()-(histoData.operator[](i-1)*getHeight()/max),float(i)*float(getWidth())/float(histoData.size()),getHeight()-(histoData.operator[](i)*getHeight()/max));
+        }
         else
-            g.drawLine((i-1)*getWidth()/histoData.size(),getHeight()-(histoData.operator[](i-1)*getHeight()),(i)*getWidth()/histoData.size(),getHeight()-(histoData.operator[](i)*getHeight()));
+            g.drawLine(float(i-1)*float(getWidth())/float(histoData.size()),getHeight()-(histoData.operator[](i-1)*getHeight()),float(i)*float(getWidth())/float(histoData.size())
+                       ,getHeight()-(histoData.operator[](i)*getHeight()));
     }
 }
 
@@ -412,19 +406,16 @@ void HistoGraph::clear(){
 }
 
 void HistoGraph::mouseMove(const MouseEvent &event){
-    int posX = event.getMouseDownScreenX();
     if(histoData.size()>0){
-        int valueY = histoData[float(posX)/float(getWidth())*float(histoData.size())];
+        Point<int> data = event.getPosition();
+        int posX = data.getX();
+        int valueY = histoData[int(float(posX)/float(getWidth())*float(histoData.size()))];
         canvas->setData(valueY);
-        canvas->setBin(float(posX)/float(getWidth())*float(histoData.size()));
+        canvas->setBin(int(float(posX)/float(getWidth())*float(histoData.size()))-(histoData.size()/2));
         canvas->repaint();
-        /*menu.clear();
-        menu.addItem(1, "Bin: " + String(int(float(posX)/float(getWidth())*float(histoData.size()))+1)+ " Counts: " + String(valueY),false);
-        menu.showAt(this);
-         */
-    
     }
 }
+
 //----------------
 
 StatDisplay::StatDisplay(juce::Colour c, std::vector<float> s){
