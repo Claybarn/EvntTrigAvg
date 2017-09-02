@@ -208,6 +208,7 @@ void EvntTrigAvgDisplay::resized()
 }
 
 void EvntTrigAvgDisplay::paint(Graphics &g){
+    const ScopedLock myScopedLock(mut);
     histoData = processor->getHistoData();
     minMaxMean = processor->getMinMaxMean();
     int width=getWidth();
@@ -222,10 +223,10 @@ void EvntTrigAvgDisplay::paint(Graphics &g){
         for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
             GraphUnit* graph;
             if(sortedId==0)
-                graph = new GraphUnit(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+                graph = new GraphUnit(processor,canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
             else{
                 String ID;
-                graph = new GraphUnit(canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID "+String(electrodeSortedId[channelIt][sortedId]),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+                graph = new GraphUnit(processor,canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID "+String(electrodeSortedId[channelIt][sortedId]),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
             }
             graphs.push_back(graph);
             graph->setBounds(0, 40*(graphCount), width-20, 40);
@@ -317,12 +318,17 @@ void inline Timescale::setBinSize(int binSize_){
 //--------------------------------------------------------------------
 
 
-GraphUnit::GraphUnit(EvntTrigAvgCanvas* canvas_,juce::Colour color_, String name_, std::vector<float> stats_, std::vector<uint64> data_){
+GraphUnit::GraphUnit(EvntTrigAvg* processor_, EvntTrigAvgCanvas* canvas_,juce::Colour color_, String name_, float* stats_,uint64* data_){
     color = color_;
     LD = new LabelDisplay(color_,name_);
     LD->setBounds(0,0,30,40);
     addAndMakeVisible(LD,false);
-    HG = new HistoGraph(canvas_,color_, stats_[1], data_);
+    int bins = processor_->getWindowSize()/processor_->getBinSize();
+    //if(stats_.size()>=3)
+        HG = new HistoGraph(canvas_,color_,bins, stats_[1], data_);
+    //else
+    //    HG = new HistoGraph(canvas_,color_,bins, 0, data_);
+    
     HG->setBounds(30,0,getWidth()-210,40);
     addAndMakeVisible(HG,false);
     SD = new StatDisplay(color_,stats_);
@@ -360,13 +366,12 @@ void LabelDisplay::resized(){
 
 //----------------
 
-HistoGraph::HistoGraph(EvntTrigAvgCanvas* canvas_, juce::Colour c, int m, std::vector<uint64> histoData_){
-    //menu = &men;
-    color = c;
+HistoGraph::HistoGraph(EvntTrigAvgCanvas* canvas_, juce::Colour color_, int bins_, int max_, uint64* histoData_){
+    color = color_;
     histoData = histoData_;
-    max = m;
+    bins = bins_;
+    max = max_;
     canvas = canvas_;
-    //setMouseClickGrabsKeyboardFocus(true);
 }
 
 HistoGraph::~HistoGraph(){
@@ -379,13 +384,12 @@ void HistoGraph::paint(Graphics& g){
     g.drawVerticalLine(getWidth()/2,5, getHeight());
     g.setColour(color);
     
-    for (int i = 1 ; i < histoData.size() ; i++){
+    for (int i = 1 ; i < bins ; i++){
         if(max!=0){
-            g.drawLine(float(i-1)*float(getWidth())/float(histoData.size()),getHeight()-(histoData.operator[](i-1)*getHeight()/max),float(i)*float(getWidth())/float(histoData.size()),getHeight()-(histoData.operator[](i)*getHeight()/max));
+            g.drawLine(float(i-1)*float(getWidth())/float(bins),getHeight()-(histoData[i-1]*getHeight()/max),float(i)*float(getWidth())/float(bins),getHeight()-(histoData[i]*getHeight()/max));
         }
         else
-            g.drawLine(float(i-1)*float(getWidth())/float(histoData.size()),getHeight()-(histoData.operator[](i-1)*getHeight()),float(i)*float(getWidth())/float(histoData.size())
-                       ,getHeight()-(histoData.operator[](i)*getHeight()));
+            g.drawLine(float(i-1)*float(getWidth())/float(bins),getHeight()-(histoData[i-1]*getHeight()),float(i)*float(getWidth())/float(bins),getHeight()-(histoData[i]*getHeight()));
     }
 }
 
@@ -406,19 +410,20 @@ void HistoGraph::clear(){
 }
 
 void HistoGraph::mouseMove(const MouseEvent &event){
-    if(histoData.size()>0){
-        Point<int> data = event.getPosition();
-        int posX = data.getX();
-        int valueY = histoData[int(float(posX)/float(getWidth())*float(histoData.size()))];
+    if(bins>0){
+        //Point<int> data = event.getPosition();
+        //int posX = data.getX();
+        int posX = event.x;
+        int valueY = histoData[int(float(posX)/float(getWidth())*float(bins))];
         canvas->setData(valueY);
-        canvas->setBin(int(float(posX)/float(getWidth())*float(histoData.size()))-(histoData.size()/2));
+        canvas->setBin(int(float(posX)/float(getWidth())*float(bins))-(bins/2));
         canvas->repaint();
     }
 }
 
 //----------------
 
-StatDisplay::StatDisplay(juce::Colour c, std::vector<float> s){
+StatDisplay::StatDisplay(juce::Colour c, float* s){
     color = c;
     stats = s;
 }
