@@ -82,23 +82,25 @@ public:
     uint64 binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint);
     void processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData);
     uint64* binCount(std::vector<uint64> binData, uint64 numberOfBins);
-    std::vector<std::vector<std::vector<uint64>>> getHistoData();
+    std::vector<std::vector<uint64*>> getHistoData();
     bool shouldReadHistoData();
-    int findMin(std::vector<uint64> data_);
-    int findMax(std::vector<uint64> data_);
-    float findMean(std::vector<uint64> data_);
-    std::vector<std::vector<std::vector<float>>> getMinMaxMean();
+    int findMin(uint64* data_);
+    int findMax(uint64* data_);
+    float findMean(uint64* data_);
+    std::vector<std::vector<float*>> getMinMaxMean();
     std::vector<int> createElectrodeMap();
     std::vector<String> createElectrodeLabels();
     std::vector<String> getElectrodeLabels();
     std::vector<std::vector<int>> getElectrodeSortedId();
 private:
+    CriticalSection mut;
     void initializeHistogramArray();
     void initializeMinMaxMean();
     std::atomic<int> triggerEvent;
     std::atomic<int> triggerChannel;
 
     uint64 bins[1000]; // allocate space for 1000 bins
+
     int numChannels = 0;
     bool readHistoData = false;
     bool recalc = false;
@@ -110,14 +112,15 @@ private:
     
     std::vector<uint64> ttlTimestampBuffer;
     std::vector<std::vector<std::vector<uint64>>> spikeData;// channel.sortedID.spikeInstance.timestamp
-    std::vector<std::vector<std::vector<uint64>>> histogramData;
-    std::vector<std::vector<std::vector<float>>> minMaxMean;
+    //std::vector<std::vector<std::vector<uint64>>> histogramData;
+    void clearHistogramData(uint64 *);
+    //TODO change above to below
+    std::vector<std::vector<uint64 *>> histogramData;
+    std::vector<std::vector<float*>> minMaxMean;
     std::vector<int> electrodeMap;
     std::vector<String> electrodeLabels;
-    std::vector<int> idIndex; //sorted ID, electrode
-    std::vector<std::vector<int>> electrodeSortedId;
-    //float sampleRate = 0;
-    
+    std::vector<int> idIndex; //sorted ID, electrode. used to match a sortedID with its electrode
+    std::vector<std::vector<int>> electrodeSortedId; 
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EvntTrigAvg);
 
@@ -126,3 +129,4 @@ private:
 
 
 #endif  // __EvntTrigAvg_H_3F920F95__
+
