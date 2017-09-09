@@ -89,9 +89,7 @@ void EvntTrigAvgCanvas::refreshState()
 void EvntTrigAvgCanvas::resized()
 {
 
-    int xOffset= 40;
     int yOffset = 50;
-    int drawWidth = getWidth()-20-getWidth()/4;
     viewport->setBounds(0,yOffset,getWidth(),getHeight()-yOffset-40);
     if (display->getNumGraphs()>0)
         display->setBounds(0,yOffset,getWidth()-scrollBarThickness,display->getNumGraphs()*40);
@@ -207,75 +205,70 @@ void EvntTrigAvgDisplay::resized()
     }
 }
 
-void EvntTrigAvgDisplay::paint(Graphics &g){
-    const ScopedLock myScopedLock(mut);
+void EvntTrigAvgDisplay::paint(Graphics &g)
+{
+
+    histoData.clear();
     histoData = processor->getHistoData();
+    minMaxMean.clear();
     minMaxMean = processor->getMinMaxMean();
     int width=getWidth();
-    int height=getHeight();
     g.setColour(Colours::snow);
     std::vector<String> labels = processor->getElectrodeLabels();
     deleteAllChildren();
     graphs.clear();
     int graphCount = 0;
-    std::vector<std::vector<int>> electrodeSortedId  = processor->getElectrodeSortedId();
-    for (int channelIt = 0 ; channelIt < histoData.size() ; channelIt++){
-        for(int sortedId = 0 ; sortedId < histoData[channelIt].size() ; sortedId++){
-            GraphUnit* graph;
-            if(sortedId==0)
-                graph = new GraphUnit(processor,canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],labels[channelIt],minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+    
+    for (int i = 0 ; i < histoData.size() ; i++){
+        GraphUnit* graph;
+        ScopedLock myScopedLock(*processor->getMutex());
+        if(histoData[i][1]==0){ // if sortedId == 0
+                graph = new GraphUnit(processor,canvas,channelColours[(histoData[i][0]+sizeof(channelColours))%(sizeof(channelColours))],labels[histoData[i][0]],&minMaxMean[i][2],&histoData[i][2]); // pass &histoData[i][2] instead of 3 to pass on how many bins are used
+        }
             else{
-                String ID;
-                graph = new GraphUnit(processor,canvas,channelColours[(channelIt+sizeof(channelColours))%(sizeof(channelColours))],"ID "+String(electrodeSortedId[channelIt][sortedId]),minMaxMean[channelIt][sortedId],histoData[channelIt][sortedId]);
+                graph = new GraphUnit(processor,canvas,channelColours[(histoData[i][0]+sizeof(channelColours))%(sizeof(channelColours))],"ID "+String(histoData[i][1]),&minMaxMean[i][2],&histoData[i][2]);
             }
             graphs.push_back(graph);
             graph->setBounds(0, 40*(graphCount), width-20, 40);
             addAndMakeVisible(graph,true);
             graphCount += 1;
-        }
     }
-
     repaint();
 }
 
-void EvntTrigAvgDisplay::refresh(){
+void EvntTrigAvgDisplay::refresh()
+{
     for (int i = 0 ; i < graphs.size() ; i++){
         graphs[i]->repaint();
     }
 }
 
-int EvntTrigAvgDisplay::getNumGraphs(){
+int EvntTrigAvgDisplay::getNumGraphs()
+{
     return graphs.size();
 }
 //--------------------------------------------------------------------
-Timescale::Timescale(int windowSize_, uint64 sampleRate_, int data_, int bin_,int binSize_){
+Timescale::Timescale(int windowSize_, uint64 sampleRate_, int data_, int bin_,int binSize_)
+{
     windowSize = windowSize_;
     sampleRate = sampleRate_;
     data = data_;
     bin = bin_;
     binSize = binSize_;
 }
-Timescale::~Timescale(){
+Timescale::~Timescale()
+{
     
 }
 
-void Timescale::paint(Graphics& g){
+void Timescale::paint(Graphics& g)
+{
     g.setColour(Colours::snow);
-    //graphs[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
-    //HG->setBounds(30,0,getWidth()-210,40);
-    /*
-     LD->setBounds(0,0,30,40);
-     SD->setBounds(getWidth()-180,0,180,40);
-     HG->setBounds(30,0,getWidth()-210,40);
-     */
     int histogramLen = getWidth()-230;
-    //int histogramLen = getWidth()-20-getWidth()/4;
     int vertLineLen = 20;
     int textStart = vertLineLen+5;
-
-
     g.drawHorizontalLine(0, 30, histogramLen+30);
-    
+
     g.drawVerticalLine(30, 0, vertLineLen);
     g.drawText(String(-1000.0*float(windowSize/2)/float(sampleRate)) + " ms", 0, textStart, 60, 10, Justification::centred);
     
@@ -285,10 +278,8 @@ void Timescale::paint(Graphics& g){
     g.drawVerticalLine(histogramLen/2+30, 0, vertLineLen);
     g.drawText(" 0 ms",histogramLen/2, textStart, 60, 10, Justification::centred);
     
-    
     g.drawVerticalLine(3*histogramLen/4+30, 0, vertLineLen);
     g.drawText(String(1000.0*float(windowSize/2)/2.0/float(sampleRate)) + " ms", 3*histogramLen/4, textStart, 60, 10, Justification::centred);
-    
     
     g.drawVerticalLine(histogramLen+30, 0, vertLineLen);
     g.drawText(String(1000.0*float(windowSize/2)/float(sampleRate)) + " ms", histogramLen, textStart, 60, 10, Justification::centred);
@@ -296,52 +287,57 @@ void Timescale::paint(Graphics& g){
     g.drawText(String(1000*float(bin*binSize)/float(sampleRate)) + " - " + String(1000*(float(bin+1)*binSize)/float(sampleRate)) + " ms, Spikes: " + String(data),histogramLen+30, 5, getWidth()-(histogramLen+30), getHeight(), Justification::right);
 }
 
-void Timescale::resized(){
+void Timescale::resized()
+{
     
 }
 
-void Timescale::update(int windowSize_, uint64 sampleRate_){
+void Timescale::update(int windowSize_, uint64 sampleRate_)
+{
     windowSize=windowSize_;
     sampleRate=sampleRate_;
 }
 
-void inline Timescale::setBin(int bin_){
+void inline Timescale::setBin(int bin_)
+{
     bin = bin_;
 }
-void inline Timescale::setData(int data_){
+void inline Timescale::setData(int data_)
+{
     data = data_;
 }
-void inline Timescale::setBinSize(int binSize_){
+void inline Timescale::setBinSize(int binSize_)
+{
     binSize = binSize_;
 }
 
 //--------------------------------------------------------------------
 
 
-GraphUnit::GraphUnit(EvntTrigAvg* processor_, EvntTrigAvgCanvas* canvas_,juce::Colour color_, String name_, float* stats_,uint64* data_){
+GraphUnit::GraphUnit(EvntTrigAvg* processor_, EvntTrigAvgCanvas* canvas_,juce::Colour color_, String name_, float  * stats_,uint64 * data_){
+    ScopedLock myScopedLock(*processor_->getMutex());
     color = color_;
     LD = new LabelDisplay(color_,name_);
     LD->setBounds(0,0,30,40);
     addAndMakeVisible(LD,false);
-    int bins = processor_->getWindowSize()/processor_->getBinSize();
-    //if(stats_.size()>=3)
-        HG = new HistoGraph(canvas_,color_,bins, stats_[1], data_);
-    //else
-    //    HG = new HistoGraph(canvas_,color_,bins, 0, data_);
     
+    HG = new HistoGraph(processor_,canvas_,color_,data_[0], stats_[1], &data_[1]);
     HG->setBounds(30,0,getWidth()-210,40);
     addAndMakeVisible(HG,false);
-    SD = new StatDisplay(color_,stats_);
+    SD = new StatDisplay(processor_,color_,stats_);
     SD->setBounds(getWidth()-180,0,180,40);
     addAndMakeVisible(SD,false);
 }
-GraphUnit::~GraphUnit(){
+GraphUnit::~GraphUnit()
+{
     deleteAllChildren();
 }
-void GraphUnit::paint(Graphics& g){
+void GraphUnit::paint(Graphics& g)
+{
         //g.setOpacity(1);
 }
-void GraphUnit::resized(){
+void GraphUnit::resized()
+{
     LD->setBounds(0,0,30,40);
     SD->setBounds(getWidth()-180,0,180,40);
     HG->setBounds(30,0,getWidth()-210,40);
@@ -349,41 +345,50 @@ void GraphUnit::resized(){
 
 //----------------
 
-LabelDisplay::LabelDisplay(juce::Colour c, String n){
-    color = c;
-    name = n;
+LabelDisplay::LabelDisplay(juce::Colour color_, String name_)
+{
+    color = color_;
+    name = name_;
 }
-LabelDisplay::~LabelDisplay(){
+LabelDisplay::~LabelDisplay()
+{
     
 }
-void LabelDisplay::paint(Graphics& g){
+void LabelDisplay::paint(Graphics& g)
+{
     g.setColour(color);
     g.drawText(name,0, 0, 30, 40, juce::Justification::left);
 }
-void LabelDisplay::resized(){
+void LabelDisplay::resized()
+{
     
 }
 
 //----------------
 
-HistoGraph::HistoGraph(EvntTrigAvgCanvas* canvas_, juce::Colour color_, int bins_, int max_, uint64* histoData_){
+HistoGraph::HistoGraph(EvntTrigAvg* processor_,EvntTrigAvgCanvas* canvas_, juce::Colour color_, uint64 bins_, float max_, uint64 * histoData_)
+{
     color = color_;
     histoData = histoData_;
     bins = bins_;
-    max = max_;
+    max = uint64(max_);
+    processor=processor_;
     canvas = canvas_;
 }
 
-HistoGraph::~HistoGraph(){
+HistoGraph::~HistoGraph()
+{
     
 }
 
-void HistoGraph::paint(Graphics& g){
+void HistoGraph::paint(Graphics& g)
+{
+    ScopedLock myScopedLock(*processor->getMutex());
+    
     g.setColour(Colours::snow);
     g.setOpacity(0.5);
     g.drawVerticalLine(getWidth()/2,5, getHeight());
     g.setColour(color);
-    
     for (int i = 1 ; i < bins ; i++){
         if(max!=0){
             g.drawLine(float(i-1)*float(getWidth())/float(bins),getHeight()-(histoData[i-1]*getHeight()/max),float(i)*float(getWidth())/float(bins),getHeight()-(histoData[i]*getHeight()/max));
@@ -393,27 +398,31 @@ void HistoGraph::paint(Graphics& g){
     }
 }
 
-void HistoGraph::resized(){
+void HistoGraph::resized()
+{
     repaint();
 }
 
-void HistoGraph::select(){
+void HistoGraph::select()
+{
     
 }
 
-void HistoGraph::deselect(){
+void HistoGraph::deselect()
+{
     
 }
 
-void HistoGraph::clear(){
+void HistoGraph::clear()
+{
     
 }
 
-void HistoGraph::mouseMove(const MouseEvent &event){
+void HistoGraph::mouseMove(const MouseEvent &event)
+{
     if(bins>0){
-        //Point<int> data = event.getPosition();
-        //int posX = data.getX();
         int posX = event.x;
+        ScopedLock myScopedLock(*processor->getMutex());
         int valueY = histoData[int(float(posX)/float(getWidth())*float(bins))];
         canvas->setData(valueY);
         canvas->setBin(int(float(posX)/float(getWidth())*float(bins))-(bins/2));
@@ -423,23 +432,29 @@ void HistoGraph::mouseMove(const MouseEvent &event){
 
 //----------------
 
-StatDisplay::StatDisplay(juce::Colour c, float* s){
+StatDisplay::StatDisplay(EvntTrigAvg* processor_, juce::Colour c, float * s)
+{
+    processor=processor_;
     color = c;
     stats = s;
 }
 
-StatDisplay::~StatDisplay(){
+StatDisplay::~StatDisplay()
+{
     
 }
 
-void StatDisplay::paint(Graphics& g){
+void StatDisplay::paint(Graphics& g)
+{
+    ScopedLock myScopedLock(*processor->getMutex());
     g.setColour(color);
     g.drawText(String(stats[0]),0, 0, 60, 40, juce::Justification::right);
     g.drawText(String(stats[1]),60, 0, 60, 40, juce::Justification::right);
     g.drawText(String(stats[2]),120, 0, 60, 40, juce::Justification::right);
     }
 
-void StatDisplay::resized(){
+void StatDisplay::resized()
+{
     
 }
 
