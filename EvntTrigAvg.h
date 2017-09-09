@@ -31,15 +31,15 @@
 class EvntTrigAvgEditor;
 
 /**
-
+Aligns spike times with TTL input.
+ 
+@see EvntTrigAvgCanvas, EvntTrigAvgEditor
 
 */
 
 class EvntTrigAvg : public GenericProcessor
 {
 public:
-
-    // CONSTRUCTOR AND DESTRUCTOR //
 
     /** constructor */
     EvntTrigAvg();
@@ -52,7 +52,6 @@ public:
 
     void handleEvent (const EventChannel* eventInfo, const MidiMessage& event, int sampleNum) override;
     void handleSpike(const SpikeChannel* channelInfo, const MidiMessage& event, int samplePosition) override;
-
     void process(AudioSampleBuffer& buffer) override;
 
     /** Used to alter parameters of data acquisition. */
@@ -70,54 +69,57 @@ public:
     /** Creates the EvntTrigAvgEditor. */
     AudioProcessorEditor* createEditor() override;
     
-    void clearTTLTimestampBuffer();
+   
     float getSampleRate();
-    std::vector<uint64> getTTLTimestampBuffer();
     int getLastTTLCalculated();
     uint64 getWindowSize();
     uint64 getBinSize();
+    std::vector<String> getElectrodeLabels();
+    CriticalSection* getMutex() { return &mut; }
+    //get pointers to shared data
+    Array<uint64 *> getHistoData();
+    Array<float *> getMinMaxMean();
 
     //create histogram data
-    uint64* createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData);
-    uint64 binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint);
+    uint64* createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData); // shared data
+    uint64 binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint); // shared data
     void processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData);
-    uint64* binCount(std::vector<uint64> binData, uint64 numberOfBins);
-    std::vector<std::vector<uint64*>> getHistoData();
+    uint64* binCount(std::vector<uint64> binData, uint64 numberOfBins); // shared data
     bool shouldReadHistoData();
-    int findMin(uint64* data_);
-    int findMax(uint64* data_);
-    float findMean(uint64* data_);
-    std::vector<std::vector<float*>> getMinMaxMean();
+    float findMin(uint64* data_);
+    float findMax(uint64* data_);
+    float findMean(uint64* data_); // TODO make running
+    
+    
     std::vector<int> createElectrodeMap();
     std::vector<String> createElectrodeLabels();
-    std::vector<String> getElectrodeLabels();
-    std::vector<std::vector<int>> getElectrodeSortedId();
+    
+    
 private:
     CriticalSection mut;
     void initializeHistogramArray();
     void initializeMinMaxMean();
+    void clearHistogramArray();
+    void clearMinMaxMean();
+    void addNewSortedIdHistoData(int electrode, int sortedId);
+    void addNewSortedIdMinMaxMean(int electrode,int sortedID);
     std::atomic<int> triggerEvent;
     std::atomic<int> triggerChannel;
 
-    uint64 bins[1000]; // allocate space for 1000 bins
+    uint64 bins[1000]; // workspace for bin counting
 
     int numChannels = 0;
-    bool readHistoData = false;
     bool recalc = false;
     int lastTTLCalculated = 0;
     uint64 windowSize;
     uint64 binSize;
     
-    //TODO make a struct to move all the information in a more intuitive way
-    
     std::vector<uint64> ttlTimestampBuffer;
     std::vector<std::vector<std::vector<uint64>>> spikeData;// channel.sortedID.spikeInstance.timestamp
-    //std::vector<std::vector<std::vector<uint64>>> histogramData;
-    void clearHistogramData(uint64 *);
-    //TODO change above to below
-    std::vector<std::vector<uint64 *>> histogramData;
-    std::vector<std::vector<float*>> minMaxMean;
-    std::vector<int> electrodeMap;
+    void clearHistogramData(uint64 * const);
+    Array<uint64*> histogramData; // shared data
+    Array<float*> minMaxMean; // shared data
+    std::vector<int> electrodeMap; // Used to identify what electrode a spike came from
     std::vector<String> electrodeLabels;
     std::vector<int> idIndex; //sorted ID, electrode. used to match a sortedID with its electrode
     std::vector<std::vector<int>> electrodeSortedId; 
@@ -129,4 +131,3 @@ private:
 
 
 #endif  // __EvntTrigAvg_H_3F920F95__
-
