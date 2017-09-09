@@ -39,10 +39,12 @@ EvntTrigAvg::EvntTrigAvg()
 
 EvntTrigAvg::~EvntTrigAvg()
 {
-    
+    clearHistogramArray();
+    clearMinMaxMean();
 }
 
-void EvntTrigAvg::setParameter(int parameterIndex, float newValue){
+void EvntTrigAvg::setParameter(int parameterIndex, float newValue)
+{
     bool changed = false;
     if (parameterIndex == 0 && triggerEvent != static_cast<int>(newValue)){
         triggerEvent = static_cast<int>(newValue);
@@ -66,19 +68,18 @@ void EvntTrigAvg::setParameter(int parameterIndex, float newValue){
     
     // If anything was changed, delete all data and start over
     if (changed){
-        minMaxMean.clear();
         spikeData.clear();
         ttlTimestampBuffer.clear();
-        histogramData.clear();
         lastTTLCalculated=0;
         updateSettings();
     }
 }
 
-void EvntTrigAvg::updateSettings(){
-    histogramData.clear();
+void EvntTrigAvg::updateSettings()
+{
+    clearMinMaxMean();
+    clearHistogramArray();
     initializeHistogramArray();
-    minMaxMean.clear();
     initializeMinMaxMean();
     electrodeMap.clear();
     electrodeMap = createElectrodeMap();
@@ -95,45 +96,67 @@ void EvntTrigAvg::updateSettings(){
             spikeData[electrodeIt].resize(1);
     }
 }
-void EvntTrigAvg::initializeHistogramArray(){
-    const ScopedLock myScopedLock(mut);
-    histogramData.resize(getTotalSpikeChannels());
-    for(int electrodeIt = 0 ; electrodeIt < histogramData.size(); electrodeIt++){
-        histogramData[electrodeIt].resize(1);
-        for(int sortedIdIt = 0 ; sortedIdIt < histogramData[electrodeIt].size(); sortedIdIt++){
-            if(histogramData[electrodeIt][sortedIdIt]!=NULL)
-                delete histogramData[electrodeIt][sortedIdIt];
-            histogramData[electrodeIt][sortedIdIt] = new uint64[1000]{0};
-        }
+void EvntTrigAvg::initializeHistogramArray()
+{
+    const ScopedLock lock(mut);
+    for (int i = 0 ; i < getTotalSpikeChannels() ; i++){
+        histogramData.add(new uint64[1003]{0});
+        histogramData[i][0]=i;//electrode
+        histogramData[i][1]=0;//sortedID
+        histogramData[i][2]=0;//num bins used
     }
 }
 
-void EvntTrigAvg::initializeMinMaxMean(){
-    minMaxMean.resize(getTotalSpikeChannels());
-    for(int electrodeIt = 0 ; electrodeIt < getTotalSpikeChannels() ; electrodeIt++){
-        minMaxMean[electrodeIt].push_back(new float[3]{0,0,0});
+void EvntTrigAvg::initializeMinMaxMean()
+{
+    const ScopedLock lock(mut);
+    for (int i = 0 ; i < getTotalSpikeChannels() ; i++){
+        minMaxMean.add(new float[5]);
+        minMaxMean[i][0]=i;//electrode
+        minMaxMean[i][1]=0;//sortedId
+        minMaxMean[i][2]=0;//minimum
+        minMaxMean[i][3]=0;//maximum
+        minMaxMean[i][4]=0;//Mean
     }
 }
 
-bool EvntTrigAvg::enable(){
+void EvntTrigAvg::clearHistogramArray()
+{
+    const ScopedLock lock(mut);
+    for (int i = 0 ; i < histogramData.size() ; i++)
+        delete[] histogramData[i];
+    histogramData.clear();
+}
+void EvntTrigAvg::clearMinMaxMean()
+{
+    const ScopedLock lock(mut);
+    for (int i = 0 ; i < minMaxMean.size() ; i++)
+        delete[] minMaxMean[i];
+    minMaxMean.clear();
+}
+
+bool EvntTrigAvg::enable()
+{
     return true;
 }
 
-bool EvntTrigAvg::disable(){
+bool EvntTrigAvg::disable()
+{
     return true;
 }
 
 
-void EvntTrigAvg::process(AudioSampleBuffer& buffer){
+void EvntTrigAvg::process(AudioSampleBuffer& buffer)
+{
     
     checkForEvents(true);// see if got any spikes
     
-    if(buffer.getNumChannels() != numChannels) // dont know if i use this
+    if(buffer.getNumChannels() != numChannels)
         numChannels = buffer.getNumChannels();
     if(ttlTimestampBuffer.size() > lastTTLCalculated && buffer.getNumSamples() + getTimestamp(0) >= ttlTimestampBuffer[lastTTLCalculated+1] + windowSize/2){ // if need to recalc
         recalc = true;
     }
-    if(recalc){ // triggered after window time has expiered
+    if(recalc){ // triggered after window time has expirered
         //process the data
         processSpikeData(spikeData, ttlTimestampBuffer);
         
@@ -143,17 +166,16 @@ void EvntTrigAvg::process(AudioSampleBuffer& buffer){
                 spikeData[channelIterator][sortedIdIterator].clear();
             }
         }
-        
         //advance the TTL that needs to be calculated
         lastTTLCalculated+=1;
         //just recalculated, don't need to again until next ttl window has expired
         recalc=false;
         // tell canvas there was a change to the histogram
-        readHistoData=true;
-        }
+    }
 }
 
-void EvntTrigAvg::handleEvent(const EventChannel* eventInfo, const MidiMessage& event, int sampleNum){
+void EvntTrigAvg::handleEvent(const EventChannel* eventInfo, const MidiMessage& event, int sampleNum)
+{
     if (triggerEvent < 0) return;
     else if (eventInfo->getChannelType() == EventChannel::TTL && eventInfo == eventChannelArray[triggerEvent])
     {// if TTL from right channel
@@ -163,7 +185,8 @@ void EvntTrigAvg::handleEvent(const EventChannel* eventInfo, const MidiMessage& 
     }
 }
 
-void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& event, int samplePosition){
+void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& event, int samplePosition)
+{
     SpikeEventPtr newSpike = SpikeEvent::deserializeFromMessage(event, spikeInfo);
     if (!newSpike)
         return;
@@ -171,7 +194,7 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         // extract information from spike
         
         const SpikeChannel* chan = newSpike->getChannelInfo();
-        Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo(); // has to stay Array
+        Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo();
         int chanIDX = chanInfo[0].channelIDX;
         int sortedID = newSpike->getSortedID();
         int electrode = electrodeMap[chanIDX];
@@ -186,10 +209,8 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         }
         if(newID){
             electrodeSortedId[chanIDX].push_back(sortedID);
-            minMaxMean[electrode].push_back(new float[3]{0});
-            histogramData[electrode].push_back(new uint64[1000]{0});
-            for(int i = 0 ; i < electrodeSortedId.size() ; i++)
-                std::cout<<electrodeSortedId[chanIDX][i]<<"\n"; //electrodeSortedId messed up
+            addNewSortedIdMinMaxMean(electrode,sortedID);
+            addNewSortedIdHistoData(electrode,sortedID); //insert new sortedId into histogramArray
             spikeData[electrode].resize(spikeData[electrode].size()+1);
             }
         
@@ -202,29 +223,76 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
     }
 }
 
-AudioProcessorEditor* EvntTrigAvg::createEditor(){
+void EvntTrigAvg::addNewSortedIdHistoData(int electrode,int sortedId)
+{
+    const ScopedLock myScopedLock(mut);
+    if(electrode == getTotalSpikeChannels()-1){
+        histogramData.add(new uint64[1003]{0});
+        histogramData.getLast()[0]=electrode;//electrode
+        histogramData.getLast()[1]=sortedId;//sortedID
+        histogramData.getLast()[2]=windowSize/binSize;//num bins used
+
+        return;
+    }
+    else{
+        for(int i = 1 ; i < histogramData.size() ; i++){
+            if(histogramData[i][0]>electrode){
+                histogramData.insert(i,new uint64[1003]{0});
+                histogramData[i][0]=electrode;//electrode
+                histogramData[i][1]=sortedId;//sortedID
+                histogramData[i][2]=windowSize/binSize;//num bins used
+                return;
+            }
+        }
+    }
+}
+
+void EvntTrigAvg::addNewSortedIdMinMaxMean(int electrode,int sortedId)
+{
+    const ScopedLock myScopedLock(mut);
+    if(electrode == getTotalSpikeChannels()-1){
+        minMaxMean.add(new float[5]);
+        minMaxMean.getLast()[0]=electrode;//electrode
+        minMaxMean.getLast()[1]=sortedId;//sortedID
+        minMaxMean.getLast()[2]=0;//minimum
+        minMaxMean.getLast()[3]=0;//maximum
+        minMaxMean.getLast()[4]=0;//mean
+        return;
+    }
+    else{
+        for(int i = 1 ; i < histogramData.size() ; i++){
+            if(minMaxMean[i][0]>electrode){
+                minMaxMean.insert(i,new float[5]);
+                minMaxMean[i][0]=electrode;//electrode
+                minMaxMean[i][1]=sortedId;//sortedID
+                minMaxMean[i][2]=0;//minimum
+                minMaxMean[i][3]=0;//maximum
+                minMaxMean[i][4]=0;//mean
+                return;
+            }
+        }
+    }
+}
+
+AudioProcessorEditor* EvntTrigAvg::createEditor()
+{
     editor = new EvntTrigAvgEditor (this, true);
     return editor;
 }
 
-void EvntTrigAvg::clearTTLTimestampBuffer(){
-    ttlTimestampBuffer.clear();
-}
-
-float EvntTrigAvg::getSampleRate(){
+float EvntTrigAvg::getSampleRate()
+{
     return juce::AudioProcessor::getSampleRate();
 }
 
-std::vector<uint64> EvntTrigAvg::getTTLTimestampBuffer(){
-    return ttlTimestampBuffer;
-}
-
-int EvntTrigAvg::getLastTTLCalculated(){
+int EvntTrigAvg::getLastTTLCalculated()
+{
     return lastTTLCalculated;
 }
 
 /** creates map to convert channelIDX to electrode number */
-std::vector<int> EvntTrigAvg::createElectrodeMap(){
+std::vector<int> EvntTrigAvg::createElectrodeMap()
+{
     std::vector<int> map;
     int numSpikeChannels = getTotalSpikeChannels();
     int electrodeCounter=0;
@@ -232,7 +300,7 @@ std::vector<int> EvntTrigAvg::createElectrodeMap(){
         const SpikeChannel* chan = getSpikeChannel(chanIt);
         // add to running count of each electrode
         map.resize(map.size()+chan->getNumChannels());
-        Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo(); // must stay Array data type
+        Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo();
         for (int subChanIt = 0 ; subChanIt < chan->getNumChannels() ; subChanIt++){
             map[chanInfo[subChanIt].channelIDX]=electrodeCounter;
         }
@@ -241,7 +309,8 @@ std::vector<int> EvntTrigAvg::createElectrodeMap(){
     return map;
 }
 
-std::vector<String> EvntTrigAvg::createElectrodeLabels(){
+std::vector<String> EvntTrigAvg::createElectrodeLabels()
+{
     std::vector<String> map;
     int numSpikeChannels = getTotalSpikeChannels();
     map.resize(numSpikeChannels);
@@ -258,29 +327,29 @@ std::vector<String> EvntTrigAvg::createElectrodeLabels(){
 }
 
 /** passes data into createHistogramData() by electrode and sorted ID */
-// TODO modify so only new data is analyzed to save processing time/memory
-void EvntTrigAvg::processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData){
-    const ScopedLock myScopedLock(mut);
+void EvntTrigAvg::processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData)
+{
+    
     for (int channelIterator = 0 ; channelIterator < getTotalSpikeChannels() ; channelIterator++){
+        const ScopedLock myScopedLock(mut);
         for (int sortedIdIterator = 0 ; sortedIdIterator < spikeData[channelIterator].size() ; sortedIdIterator++){
-             uint64* data = createHistogramData(spikeData[channelIterator][sortedIdIterator],ttlData);
-            if(minMaxMean.size()<channelIterator+1)
-                minMaxMean.resize(channelIterator+1);
-            if(minMaxMean[channelIterator].size()<sortedIdIterator+1)
-                minMaxMean[channelIterator].resize(channelIterator+1);
-            for(int dataIterator = 0 ; dataIterator<windowSize/binSize ; dataIterator++){
-                histogramData[channelIterator][sortedIdIterator][dataIterator] = histogramData[channelIterator][sortedIdIterator][dataIterator]+*(data + dataIterator);
+            uint64* data = createHistogramData(spikeData[channelIterator][sortedIdIterator],ttlData);
+            histogramData[channelIterator+sortedIdIterator][2]=windowSize/binSize;
+            for(int dataIterator = 3 ; dataIterator<windowSize/binSize+3 ; dataIterator++){
+                histogramData[channelIterator+sortedIdIterator][dataIterator] += (data[dataIterator-3]);
             }
-            minMaxMean[channelIterator][sortedIdIterator][0]= findMin(histogramData[channelIterator][sortedIdIterator]);
-            minMaxMean[channelIterator][sortedIdIterator][1]= findMax(histogramData[channelIterator][sortedIdIterator]);
-            minMaxMean[channelIterator][sortedIdIterator][2] = findMean(histogramData[channelIterator][sortedIdIterator]);
-
+        minMaxMean[channelIterator+sortedIdIterator][2]= findMin(&histogramData[channelIterator+sortedIdIterator][3]);
+            
+        minMaxMean[channelIterator+sortedIdIterator][3]= findMax(&histogramData[channelIterator+sortedIdIterator][3]);
+            
+        minMaxMean[channelIterator+sortedIdIterator][4] = findMean(&histogramData[channelIterator+sortedIdIterator][3]);
         }
     }
 }
 
 /** returns bin counts */
-uint64* EvntTrigAvg::createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData){
+uint64* EvntTrigAvg::createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData)
+{
     uint64 numberOfBins = windowSize/binSize;
     std::vector<uint64> histoData;
     for(int ttlIterator = 0 ; ttlIterator < ttlData.size() ; ttlIterator++){
@@ -296,8 +365,9 @@ uint64* EvntTrigAvg::createHistogramData(std::vector<uint64> spikeData, std::vec
 }
 
 
-// Returns the bin a data point belongs to given the very first bin, the very last bin, bin size and the data point to bin, currently only works for positive numbers (can get around by adding minimum value to all values
-uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint){
+/** Returns the bin a data point belongs to given the very first bin, the very last bin, bin size and the data point to bin, currently only works for positive numbers (can get around by adding minimum value to all values*/
+uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint)
+{
     uint64 binsInRange = (endBin-startBin);
     uint64 binsToSearch = binsInRange/2;
     if (binsToSearch <= 1){
@@ -324,8 +394,10 @@ uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize,
     }
 }
 
-uint64* EvntTrigAvg::binCount(std::vector<uint64> binData,uint64 numberOfBins){
-    for (int i = 0 ; i < numberOfBins ; i++){
+/** count the number of bin instances */
+uint64* EvntTrigAvg::binCount(std::vector<uint64> binData,uint64 numberOfBins)
+{
+    for (int i = 0 ; i < 1000 ; i++){
         bins[i]=0;
     }
     for (int dataIterator = 0 ; dataIterator < binData.size() ; dataIterator++){
@@ -334,68 +406,74 @@ uint64* EvntTrigAvg::binCount(std::vector<uint64> binData,uint64 numberOfBins){
     return bins;
 }
 
-uint64 EvntTrigAvg::getBinSize(){
+uint64 EvntTrigAvg::getBinSize()
+{
     return binSize;
 }
 
-uint64 EvntTrigAvg::getWindowSize(){
+uint64 EvntTrigAvg::getWindowSize()
+{
     return windowSize;
 }
 
-std::vector<std::vector<uint64*>> EvntTrigAvg::getHistoData(){
-        readHistoData=false;
-        return histogramData;
+Array<uint64 *> EvntTrigAvg::getHistoData()
+{
+    const ScopedLock myScopedLock(mut);
+    return histogramData;
 }
 
-bool EvntTrigAvg::shouldReadHistoData(){
-    return readHistoData;
-}
-
-int EvntTrigAvg::findMin(uint64* data_){
-    //int min = INT_MAX;
-    int min = 2147483647;
-    for (int i = 0 ; i < windowSize/binSize ; i++){
-        int data = data_[i];
-        if(data<min){
-            min=data;
-        }
-    }
-    return min;
-}
-
-int EvntTrigAvg::findMax(uint64* data_){
-    //int max = INT_MIN;
-    int max =-2147483647;
-    for (int i = 0 ; i < windowSize/binSize ; i++){
-        int data = data_[i];
-        if(data>max){
-            max=data;
-        }
-    }
-    return max;
-}
-
-float EvntTrigAvg::findMean(uint64* data_){
-    int runningSum=0;
-    for(int i=0 ; i < windowSize/binSize ; i++){
-        runningSum += data_[i];
-    }
-    float mean = float(runningSum)/float(windowSize/binSize);
-    return mean;
-}
-
-std::vector<std::vector<float*>> EvntTrigAvg::getMinMaxMean(){
+Array<float *> EvntTrigAvg::getMinMaxMean()
+{
+    const ScopedLock myScopedLock(mut);
     return minMaxMean;
 }
 
-std::vector<String> EvntTrigAvg::getElectrodeLabels(){
-    return electrodeLabels;
-}
-std::vector<std::vector<int>> EvntTrigAvg::getElectrodeSortedId(){
-    return electrodeSortedId;
+float EvntTrigAvg::findMin(uint64* data_)
+{
+    const ScopedLock myScopedLock(mut);
+    //uint64 min = UINT64_MAX;
+    uint64 min = 18446744073709551614;
+    for (int i = 0 ; i < windowSize/binSize ; i++){
+        if(data_[i]<min){
+            min=data_[i];
+        }
+    }
+    return float(min);
 }
 
-void EvntTrigAvg::clearHistogramData(uint64 * dataptr){
+float EvntTrigAvg::findMax(uint64* data_)
+{
+    const ScopedLock myScopedLock(mut);
+    uint64 max = 0;
+    for (int i = 0 ; i < windowSize/binSize ; i++){
+        if(data_[i]>max){
+            max=data_[i];
+        }
+    }
+    return float(max);
+}
+
+float EvntTrigAvg::findMean(uint64* data_)
+{
+    const ScopedLock myScopedLock(mut);
+    uint64 runningSum=0;
+    for(int i=0 ; i < windowSize/binSize ; i++){
+        runningSum += data_[i];
+    }
+    float mean = float(runningSum)/(float(windowSize)/float(binSize));
+    return mean;
+}
+
+
+
+std::vector<String> EvntTrigAvg::getElectrodeLabels()
+{
+    return electrodeLabels;
+}
+
+void EvntTrigAvg::clearHistogramData(uint64 * dataptr)
+{
+    const ScopedLock myScopedLock(mut);
     for(int i = 0 ; i < 1000 ; i++)
         dataptr[i] = 0;
 }
