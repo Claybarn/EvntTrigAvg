@@ -97,8 +97,6 @@ Visualizer* EvntTrigAvgEditor::createNewCanvas()
 
     EvntTrigAvg* processor = (EvntTrigAvg*) getProcessor();
     evntTrigAvgCanvas = new EvntTrigAvgCanvas(processor);
-    //ActionListener* listener = (ActionListener*) EvntTrigAvgCanvas;
-    //getUIComponent()->registerAnimatedComponent(listener);
     return evntTrigAvgCanvas;
 }
 
@@ -127,16 +125,28 @@ void EvntTrigAvgEditor::labelTextChanged(Label* label)
     uint64 wms = wS/(processor->getSampleRate()/1000);
     uint64 bms = bS/(processor->getSampleRate()/1000);
     if (label == binSize){
-        if(label->getText().getIntValue() < wms)
-            processor->setParameter(2,label->getText().getIntValue());
+        if(label->getText().getIntValue() < wms){
+            if(wms/(label->getText().getIntValue()) <= 1000)
+                processor->setParameter(2,label->getText().getIntValue());
+            else{
+                CoreServices::sendStatusMessage("Maximum of 1000 bins allowed");
+                label->setText(String(bms),juce::NotificationType::dontSendNotification);
+            }
+        }
         else{
             CoreServices::sendStatusMessage("Bin size must be smaller than window size.");
             label->setText(String(bms),juce::NotificationType::dontSendNotification);
         }
     }
     else if (label == windowSize){
-        if(label->getText().getIntValue() > bms)
-            processor->setParameter(3,label->getText().getIntValue());
+        if(label->getText().getIntValue() > bms){
+            if(label->getText().getIntValue()/bms<=1000)
+                processor->setParameter(3,label->getText().getIntValue());
+            else{
+                CoreServices::sendStatusMessage("Maximum of 1000 bins allowed");
+                label->setText(String(bms),juce::NotificationType::dontSendNotification);
+            }
+        }
         else{
             CoreServices::sendStatusMessage("Window size must be larer than bin size.");
             label->setText(String(wms),juce::NotificationType::dontSendNotification);
@@ -167,15 +177,12 @@ void EvntTrigAvgEditor::updateSettings()
     String name;
     int oldId = triggerChannel->getSelectedId();
     triggerChannel->clear();
-    //GenericProcessor* processor = getProcessor();
     triggerChannel->addItem("None", 1);
     int nextItem = 2;
     int nEvents = processor->getTotalEventChannels();
-    //int nEvents = processor->getTotalSpikeChannels();
     for (int i = 0; i < nEvents; i++)
     {
         const EventChannel* event = processor->getEventChannel(i);
-        //const SpikeChannel* event = processor->getSpikeChannel(i);
         if (event->getChannelType() == EventChannel::TTL)
         {
             s.eventIndex = i;
@@ -184,8 +191,6 @@ void EvntTrigAvgEditor::updateSettings()
             {
                 s.channel = c;
                 name = event->getSourceName() + " (TTL" + String(c+1) + ")";
-                //name = event->getSourceName() + " (Spike" + String(c+1) + ")";
-
                 eventSourceArray.push_back(s);
                 triggerChannel->addItem(name, nextItem++);
             }
@@ -197,5 +202,6 @@ void EvntTrigAvgEditor::updateSettings()
     }
     triggerChannel->setSelectedId(oldId, sendNotification);
 }
+
 
 
