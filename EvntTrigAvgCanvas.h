@@ -21,113 +21,204 @@
 
 */
 
-#ifndef __EvntTrigAvg_H_3F920F95__
-#define __EvntTrigAvg_H_3F920F95__
+#ifndef EvntTrigAvgCANVAS_H_
+#define EvntTrigAvgCANVAS_H_
 
-#include <ProcessorHeaders.h>
-#include "EvntTrigAvgEditor.h"
+#include <VisualizerWindowHeaders.h>
+#include "EvntTrigAvg.h"
+
 #include <vector>
 
-class EvntTrigAvgEditor;
-
 /**
-Aligns spike times with TTL input.
- 
-@see EvntTrigAvgCanvas, EvntTrigAvgEditor
 
+ Displays spikes aligned to TTL events
+ 
+ @see EvntTrigAvg, EvntTrigAvgEditor
+ 
 */
 
-class EvntTrigAvg : public GenericProcessor
+class EvntTrigAvgDisplay;
+class Timescale;
+class GraphUnit;
+class LabelDisplay;
+class HistoGraph;
+class StatDisplay;
+
+
+class EvntTrigAvgCanvas : public Visualizer, public Button::Listener
+
 {
 public:
-
-    /** constructor */
-    EvntTrigAvg();
-
-    /** destructor */
-    ~EvntTrigAvg();
-
-
-    // PROCESSOR METHODS //
-
-    void handleEvent (const EventChannel* eventInfo, const MidiMessage& event, int sampleNum) override;
-    void handleSpike(const SpikeChannel* channelInfo, const MidiMessage& event, int samplePosition) override;
-    void process(AudioSampleBuffer& buffer) override;
-
-    /** Used to alter parameters of data acquisition. */
-    void setParameter(int parameterIndex, float newValue) override;
-
-    /** Called whenever the signal chain is altered. */
-    void updateSettings() override;
-
-    /** Called prior to start of acquisition. */
-    bool enable() override;
-
-    /** Called after acquisition is finished. */
-    bool disable() override;
-
-    /** Creates the EvntTrigAvgEditor. */
-    AudioProcessorEditor* createEditor() override;
+    EvntTrigAvgCanvas(EvntTrigAvg* n);
+    ~EvntTrigAvgCanvas();
     
-   
-    float getSampleRate();
-    int getLastTTLCalculated();
-    uint64 getWindowSize();
-    uint64 getBinSize();
-    std::vector<String> getElectrodeLabels();
-    CriticalSection* getMutex() { return &mut; }
-    //get pointers to shared data
-    Array<uint64 *> getHistoData();
-    Array<float *> getMinMaxMean();
+    void paint(Graphics& g);
+    void refresh();
+    void beginAnimation();
+    void endAnimation();
+    void refreshState();
+    void setParameter(int, float) {}
+    void setParameter(int, int, int, float) {}
+    void update();
+    void resized();
+    bool keyPressed(const KeyPress& key);
+    void buttonClicked(Button* button);
+    void startRecording() { }; // unused
+    void stopRecording() { }; // unused
+    void setBin(int bin_);
+    void setBinSize(int binSize_);
+    void setData(int data_);
+    EvntTrigAvg* processor;
 
-    //create histogram data
-    uint64* createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData); // shared data
-    uint64 binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint); // shared data
-    void processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData);
-    uint64* binCount(std::vector<uint64> binData, uint64 numberOfBins); // shared data
-    bool shouldReadHistoData();
-    float findMin(uint64* data_);
-    float findMax(uint64* data_);
-    float findMean(uint64* data_); // TODO make running
-    
-    
-    std::vector<int> createElectrodeMap();
-    std::vector<String> createElectrodeLabels();
-    
-    
 private:
-    CriticalSection mut;
-    void initializeHistogramArray();
-    void initializeMinMaxMean();
-    void clearHistogramArray();
-    void clearMinMaxMean();
-    void addNewSortedIdHistoData(int electrode, int sortedId);
-    void addNewSortedIdMinMaxMean(int electrode,int sortedID);
-    std::atomic<int> triggerEvent;
-    std::atomic<int> triggerChannel;
-
-    uint64 bins[1000]; // workspace for bin counting
-
-    int numChannels = 0;
-    bool recalc = false;
-    int lastTTLCalculated = 0;
-    uint64 windowSize;
-    uint64 binSize;
     
-    std::vector<uint64> ttlTimestampBuffer;
-    std::vector<std::vector<std::vector<uint64>>> spikeData;// channel.sortedID.spikeInstance.timestamp
-    void clearHistogramData(uint64 * const);
-    Array<uint64*> histogramData; // shared data
-    Array<float*> minMaxMean; // shared data
-    std::vector<int> electrodeMap; // Used to identify what electrode a spike came from
-    std::vector<String> electrodeLabels;
-    std::vector<int> idIndex; //sorted ID, electrode. used to match a sortedID with its electrode
-    std::vector<std::vector<int>> electrodeSortedId; 
-    
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EvntTrigAvg);
+    Array<uint64*> histoData;
+    std::vector<std::vector<float>> minMaxMean;
+    void removeUnitOrBox();
+    ScopedPointer<Viewport> viewport;
+    ScopedPointer<EvntTrigAvgDisplay> display;
+    ScopedPointer<UtilityButton> clearHisto;
+    int scrollBarThickness;
+    int border = 20;
+    int triggerChannel = -1;
+    unsigned long spikeBufferSize = 0;
+    unsigned long ttlBufferSize = 0;
+    int bin = 0;
+    int binSize = 0;
+    int data = 0;
+    Timescale* scale;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EvntTrigAvgCanvas);
 
 };
 
+//---------------------------
+
+class EvntTrigAvgDisplay : public Component
+{
+    
+public:
+    EvntTrigAvgDisplay(EvntTrigAvgCanvas* c, Viewport* v, EvntTrigAvg* p);
+    ~EvntTrigAvgDisplay();
+    void visibleAreaChanged (const Rectangle<int>& newVisibleArea);
+    
+    /** Callback method that is called when the viewed component is added, removed or swapped. */
+    void viewedComponentChanged (Component* newComponent);
+    void resized();
+    void paint(Graphics &g);
+    void refresh();
+    int getNumGraphs();
+private:
+    EvntTrigAvg* processor;
+    EvntTrigAvgCanvas* canvas;
+    Viewport* viewport;
+    std::vector<GraphUnit*> graphs;
+    juce::Colour channelColours[16];
+    Array<uint64 *> histoData;
+    Array<float *> minMaxMean;
+    int border = 20;
+    
+};
+
+//---------------------------
+
+class Timescale : public Component
+{
+public:
+    Timescale(int windowSize_, uint64 sampleRate_, int data = 0, int bin = 0 ,int binSize = 0 );
+    ~Timescale();
+    void paint(Graphics& g);
+    void resized();
+    void update(int windowSize, uint64 sR);
+    void setBin(int bin_);
+    void setData(int data_);
+    void setBinSize(int binSize_);
+private:
+    int windowSize;
+    uint64 sampleRate;
+    int bin = 0;
+    int binSize = 0;
+    int data = 0;
+    int lowerBin = 0;
+    int upperBin = 0;
+    
+};
 
 
-#endif  // __EvntTrigAvg_H_3F920F95__
+//---------------------------
+
+
+class GraphUnit : public Component
+{
+public:
+    GraphUnit(EvntTrigAvg* processor_,EvntTrigAvgCanvas* canvas_,juce::Colour color_, String name_, float * stats_, uint64 * data_);
+    ~GraphUnit();
+    void paint(Graphics& g);
+    void resized();
+private:
+    LabelDisplay* LD;
+    HistoGraph* HG;
+    StatDisplay* SD;
+    Colour color;
+};
+
+//---------------------------
+
+class LabelDisplay : public Component
+{
+public:
+    LabelDisplay(Colour color,String n);
+    ~LabelDisplay();
+    void paint(Graphics& g);
+    void resized();
+private:
+    Colour color;
+    String name;
+};
+
+//---------------------------
+
+class HistoGraph : public Component
+{
+    
+public:
+    HistoGraph(EvntTrigAvg* processor_,EvntTrigAvgCanvas* canvas_,juce::Colour color_, uint64 bins_, float max_, uint64 * histoData_);
+    ~HistoGraph();
+    
+    void paint(Graphics& g);
+    void resized();
+    
+    void select();
+    void deselect();
+    void clear();
+    void mouseMove(const MouseEvent &event);
+    
+    
+private:
+    uint64 bins = 0;
+    Colour color;
+    float max;
+    uint64 const * histoData;
+    int valueY=0;
+    EvntTrigAvg* processor;
+    EvntTrigAvgCanvas* canvas;
+    
+};
+
+//---------------------------
+
+class StatDisplay : public Component
+{
+public:
+    StatDisplay(EvntTrigAvg* display_, juce::Colour c, float * s);
+    ~StatDisplay();
+    void paint(Graphics& g);
+    void resized();
+private:
+    EvntTrigAvg* processor;
+    Colour color;
+    float const * stats;
+    
+};
+
+
+#endif  // EvntTrigAvgCANVAS_H_
