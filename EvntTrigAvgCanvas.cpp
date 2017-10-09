@@ -29,7 +29,6 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     processor(n)
 {
     
-    
     clearHisto = new UtilityButton("CLEAR", Font("Default", 12, Font::plain));
     clearHisto->addListener(this);
     clearHisto->setRadius(3.0f);
@@ -383,13 +382,13 @@ HistoGraph::~HistoGraph()
 
 void HistoGraph::paint(Graphics& g)
 {
-    ScopedLock myScopedLock(*processor->getMutex());
     
     g.setColour(Colours::snow);
     g.setOpacity(0.5);
     g.drawVerticalLine(getWidth()/2,5, getHeight());
     g.setColour(color);
     for (int i = 1 ; i < bins ; i++){
+        ScopedLock myScopedLock(*processor->getMutex());
         if(max!=0){
             g.drawLine(float(i-1)*float(getWidth())/float(bins),getHeight()-(histoData[i-1]*getHeight()/max),float(i)*float(getWidth())/float(bins),getHeight()-(histoData[i]*getHeight()/max));
         }
