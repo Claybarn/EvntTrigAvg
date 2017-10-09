@@ -195,7 +195,8 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         
         const SpikeChannel* chan = newSpike->getChannelInfo();
         Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo();
-        int chanIDX = chanInfo[0].channelIDX;
+        //int chanIDX = chanInfo[0].channelIDX;
+        int chanIDX = getSpikeChannelIndex(newSpike);
         int sortedID = newSpike->getSortedID();
         int electrode = electrodeMap[chanIDX];
         if(sortedID!=0 && sortedID>idIndex.size()){ // respond to new sortedID
