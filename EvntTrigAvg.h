@@ -131,3 +131,4 @@ private:
 
 
 #endif  // __EvntTrigAvg_H_3F920F95__
+
