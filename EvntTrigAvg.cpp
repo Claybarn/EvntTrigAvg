@@ -196,20 +196,24 @@ void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& 
         const SpikeChannel* chan = newSpike->getChannelInfo();
         Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo();
         //int chanIDX = chanInfo[0].channelIDX;
-        int chanIDX = getSpikeChannelIndex(newSpike);
+        int electrode = getSpikeChannelIndex(newSpike);
+        //std::cout<<"chanIDX: " << chanIDX << "\n";
         int sortedID = newSpike->getSortedID();
-        int electrode = electrodeMap[chanIDX];
+        //int electrode = electrodeMap[chanIDX];
         if(sortedID!=0 && sortedID>idIndex.size()){ // respond to new sortedID
             idIndex.push_back(spikeData[electrode].size());// update map of what sorted ID is on what electrode
         }
             
         bool newID = true;
-        for(int i = 0 ; i < electrodeSortedId[chanIDX].size() ; i++){
-           if(sortedID == electrodeSortedId[chanIDX][i])
+        //for(int i = 0 ; i < electrodeSortedId[chanIDX].size() ; i++){
+        for(int i = 0 ; i < electrodeSortedId[electrode].size() ; i++){
+            //if(sortedID == electrodeSortedId[chanIDX][i])
+           if(sortedID == electrodeSortedId[electrode][i])
                newID=false;
         }
         if(newID){
-            electrodeSortedId[chanIDX].push_back(sortedID);
+            //electrodeSortedId[chanIDX].push_back(sortedID);
+            electrodeSortedId[electrode].push_back(sortedID);
             addNewSortedIdMinMaxMean(electrode,sortedID);
             addNewSortedIdHistoData(electrode,sortedID); //insert new sortedId into histogramArray
             spikeData[electrode].resize(spikeData[electrode].size()+1);
