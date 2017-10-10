@@ -53,6 +53,7 @@ public:
     ~EvntTrigAvgCanvas();
     
     void paint(Graphics& g);
+    void repaintDisplay();
     void refresh();
     void beginAnimation();
     void endAnimation();
