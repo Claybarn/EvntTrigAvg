@@ -18,448 +18,463 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 */
 
-/*
- */
- #include "EvntTrigAvgCanvas.h"
+#include <stdio.h>
+#include "EvntTrigAvg.h"
+#include "EvntTrigAvgCanvas.h"
+//#include "HistogramLib/HistogramLib.h"
+class EvntTrigAvg;
 
+EvntTrigAvg::EvntTrigAvg()
+    : GenericProcessor("Evnt Trig Avg")
 
-EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
-    processor(n)
 {
-    
-    clearHisto = new UtilityButton("CLEAR", Font("Default", 12, Font::plain));
-    clearHisto->addListener(this);
-    clearHisto->setRadius(3.0f);
-    clearHisto->setBounds(80,5,65,15);
-    clearHisto->setClickingTogglesState(false);
-    addAndMakeVisible(clearHisto);
-    setWantsKeyboardFocus(true);
-    
-    viewport = new Viewport();
-    viewport->setScrollBarsShown(true,true);
-    scrollBarThickness = viewport->getScrollBarThickness();
-    
-    int yOffset = 50;
-    processor = n;
-    display = new EvntTrigAvgDisplay(this, viewport, n);
-    display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-yOffset-40);
-    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,binSize);
-    viewport->setViewedComponent(display,false);
-    addAndMakeVisible(viewport);
-    viewport->setBounds(0,100,getWidth(), getHeight()-yOffset-40);
-    scale->setBounds(0, getHeight()-40, getWidth()-scrollBarThickness, 40);
-    addAndMakeVisible(scale,false);
-    
-    update();
+    setProcessorType (PROCESSOR_TYPE_FILTER);
+    windowSize = getDefaultSampleRate(); // 1 sec in samples
+    binSize = getDefaultSampleRate()/100; // 10 milliseconds in samples
+    updateSettings();
 }
 
-EvntTrigAvgCanvas::~EvntTrigAvgCanvas()
+EvntTrigAvg::~EvntTrigAvg()
 {
-    removeAllChildren();
+    clearHistogramArray();
+    clearMinMaxMean();
 }
 
-void EvntTrigAvgCanvas::beginAnimation()
+void EvntTrigAvg::setParameter(int parameterIndex, float newValue)
 {
-    std::cout << "EvntTrigAvgCanvas beginning animation." << std::endl;
-
-    startCallbacks();
-}
-
-void EvntTrigAvgCanvas::endAnimation()
-{
-    std::cout << "EvntTrigAvgCanvas ending animation." << std::endl;
-
-    stopCallbacks();
-}
-
-void EvntTrigAvgCanvas::update()
-{
-    repaint();
-}
-
-
-void EvntTrigAvgCanvas::refreshState()
-{
-    resized();
-}
-
-void EvntTrigAvgCanvas::resized()
-{
-
-    int yOffset = 50;
-    viewport->setBounds(0,yOffset,getWidth(),getHeight()-yOffset-40);
-    if (display->getNumGraphs()>0)
-        display->setBounds(0,yOffset,getWidth()-scrollBarThickness,display->getNumGraphs()*40);
-    else
-        display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-yOffset-40);
-    scale->setBounds(0, getHeight()-40, getWidth()-scrollBarThickness, 40);
-    repaint();
-}
-
-void EvntTrigAvgCanvas::paint(Graphics& g)
-{
-    g.fillAll(Colours::darkgrey);
-    
-    int width=getWidth();
-    int height=getHeight();
-    int drawWidth = width-20-width/4;
-    int xOffset= 20;
-    int yOffset = 50;
-    g.setColour(Colours::lightgrey);
-    g.fillRoundedRectangle(getWidth()-scrollBarThickness, yOffset, scrollBarThickness, height-2*yOffset, 4.0);
-
-    g.setColour(Colours::snow);
-    
-        g.drawText("Electrode",5, 5, width/8, 20, juce::Justification::left);
-    g.drawText("Trials: " + String(processor->getLastTTLCalculated()),(xOffset+drawWidth)/2-50,5,100,20,Justification::centred);
-    g.drawText("Min.", width-180-scrollBarThickness, 5, 60, 20, Justification::right);
-    g.drawText("Max", width-120-scrollBarThickness, 5, 60, 20, Justification::right);
-    g.drawText("Mean", width-60-scrollBarThickness, 5, 60, 20, Justification::right);
-    removeChildComponent(scale);
-    scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,processor->getBinSize());
-    scale->setBounds(0, getHeight()-40, width-scrollBarThickness, 40);
-    addAndMakeVisible(scale,true);
-    repaint();
-}
-
-void EvntTrigAvgCanvas::repaintDisplay(){
-    display->repaint();
-}
-
-void EvntTrigAvgCanvas::refresh()
-{
-    // called every 10 Hz
-    display->refresh(); // dont know if this ever gets called
-    repaint();
-}
-
-bool EvntTrigAvgCanvas::keyPressed(const KeyPress& key)
-{
-    return false;
-}
-
-void EvntTrigAvgCanvas::buttonClicked(Button* button)
-{
-    if (button == clearHisto){
-        histoData.clear();
-        minMaxMean.clear();
-        processor->setParameter(4,0);
+    bool changed = false;
+    if (parameterIndex == 0 && triggerEvent != static_cast<int>(newValue)){
+        triggerEvent = static_cast<int>(newValue);
+        changed = true;
     }
-     repaint();
-}
+    else if (parameterIndex == 1 && triggerChannel != static_cast<int>(newValue)){
+        triggerChannel = static_cast<int>(newValue);
+        changed = true;
+    }
+    else if(parameterIndex == 2 && binSize != newValue*(getSampleRate()/1000)){
+        binSize = newValue*(getSampleRate()/1000);
 
-void EvntTrigAvgCanvas::setBin(int bin_){
-    bin = bin_;
-}
-
-void EvntTrigAvgCanvas::setBinSize(int binSize_){
-    binSize = binSize_;
-}
-
-void EvntTrigAvgCanvas::setData(int data_){
-    data=data_;
-}
-
-//-----------------------------------------------------------------------------------------------------------------//
-
-EvntTrigAvgDisplay::EvntTrigAvgDisplay(EvntTrigAvgCanvas* c, Viewport* v, EvntTrigAvg* p){
-    processor=p;
-    canvas=c;
-    viewport=v;
-    addMouseListener(this, true);
-    channelColours[0]=Colour(224,185,36);
-    channelColours[1]=Colour(214,210,182);
-    channelColours[2]=Colour(243,119,33);
-    channelColours[3]=Colour(186,157,168);
-    channelColours[4]=Colour(237,37,36);
-    channelColours[5]=Colour(179,122,79);
-    channelColours[6]=Colour(217,46,171);
-    channelColours[7]=Colour(217, 139,196);
-    channelColours[8]=Colour(101,31,255);
-    channelColours[9]=Colour(141,111,181);
-    channelColours[10]=Colour(48,117,255);
-    channelColours[11]=Colour(184,198,224);
-    channelColours[12]=Colour(116,227,156);
-    channelColours[13]=Colour(150,158,155);
-    channelColours[14]=Colour(82,173,0);
-    channelColours[15]=Colour(125,99,32);
-}
-
-EvntTrigAvgDisplay::~EvntTrigAvgDisplay(){
-    deleteAllChildren();
-}
-
-void EvntTrigAvgDisplay::visibleAreaChanged(const Rectangle<int>& newVisibleArea){
+        changed = true;
+    }
+    else if(parameterIndex == 3 && windowSize != newValue*(getSampleRate()/1000)){
+        windowSize = newValue*(getSampleRate()/1000);
+        changed = true;
+    }
+    else if (parameterIndex == 4)
+        changed = true;
     
-}
-
-void EvntTrigAvgDisplay::viewedComponentChanged(Component* newComponent){
-    
-}
-
-void EvntTrigAvgDisplay::resized()
-{
-    int width = getWidth();
-    for(int i = 0 ; i < graphs.size() ; i++){
-        graphs[i]->setBounds(20, 40*(i+1), width-20-width/4, 40);
-        graphs[i]->resized();
+    // If anything was changed, delete all data and start over
+    if (changed){
+        spikeData.clear();
+        ttlTimestampBuffer.clear();
+        lastTTLCalculated=0;
+        updateSettings();
     }
 }
 
-void EvntTrigAvgDisplay::paint(Graphics &g)
+void EvntTrigAvg::updateSettings()
 {
+    clearMinMaxMean();
+    clearHistogramArray();
+    initializeHistogramArray();
+    initializeMinMaxMean();
+    electrodeMap.clear();
+    electrodeMap = createElectrodeMap();
+    electrodeLabels.clear();
+    electrodeLabels = createElectrodeLabels();
+    if(spikeData.size()!=getTotalSpikeChannels())
+        spikeData.resize(getTotalSpikeChannels());
+    electrodeSortedId.clear();
+    if(electrodeSortedId.size()!=getTotalSpikeChannels())
+        electrodeSortedId.resize(getTotalSpikeChannels());
+    for(int electrodeIt = 0 ; electrodeIt < spikeData.size() ; electrodeIt++){
+        electrodeSortedId[electrodeIt].push_back(0);
+        if(spikeData[electrodeIt].size()<1)
+            spikeData[electrodeIt].resize(1);
+    }
+}
+void EvntTrigAvg::initializeHistogramArray()
+{
+    const ScopedLock lock(mut);
+    for (int i = 0 ; i < getTotalSpikeChannels() ; i++){
+        histogramData.add(new uint64[1003]{0});
+        histogramData[i][0]=i;//electrode
+        histogramData[i][1]=0;//sortedID
+        histogramData[i][2]=0;//num bins used
+    }
+}
 
-    histoData.clear();
-    histoData = processor->getHistoData();
+void EvntTrigAvg::initializeMinMaxMean()
+{
+    const ScopedLock lock(mut);
+    for (int i = 0 ; i < getTotalSpikeChannels() ; i++){
+        minMaxMean.add(new float[5]);
+        minMaxMean[i][0]=i;//electrode
+        minMaxMean[i][1]=0;//sortedId
+        minMaxMean[i][2]=0;//minimum
+        minMaxMean[i][3]=0;//maximum
+        minMaxMean[i][4]=0;//Mean
+    }
+}
+
+void EvntTrigAvg::clearHistogramArray()
+{
+    const ScopedLock lock(mut);
+    for (int i = 0 ; i < histogramData.size() ; i++)
+        delete[] histogramData[i];
+    histogramData.clear();
+}
+void EvntTrigAvg::clearMinMaxMean()
+{
+    const ScopedLock lock(mut);
+    for (int i = 0 ; i < minMaxMean.size() ; i++)
+        delete[] minMaxMean[i];
     minMaxMean.clear();
-    minMaxMean = processor->getMinMaxMean();
-    int width=getWidth();
-    g.setColour(Colours::snow);
-    std::vector<String> labels = processor->getElectrodeLabels();
-    deleteAllChildren();
-    graphs.clear();
-    int graphCount = 0;
+}
+
+bool EvntTrigAvg::enable()
+{
+    return true;
+}
+
+bool EvntTrigAvg::disable()
+{
+    return true;
+}
+
+
+void EvntTrigAvg::process(AudioSampleBuffer& buffer)
+{
     
-    for (int i = 0 ; i < histoData.size() ; i++){
-        GraphUnit* graph;
-        ScopedLock myScopedLock(*processor->getMutex());
-        if(histoData[i][1]==0){ // if sortedId == 0
-                graph = new GraphUnit(processor,canvas,channelColours[(histoData[i][0]+sizeof(channelColours))%(sizeof(channelColours))],labels[histoData[i][0]],&minMaxMean[i][2],&histoData[i][2]); // pass &histoData[i][2] instead of 3 to pass on how many bins are used
-        }
-            else{
-                graph = new GraphUnit(processor,canvas,channelColours[(histoData[i][0]+sizeof(channelColours))%(sizeof(channelColours))],"ID "+String(histoData[i][1]),&minMaxMean[i][2],&histoData[i][2]);
+    checkForEvents(true);// see if got any spikes
+    
+    if(buffer.getNumChannels() != numChannels)
+        numChannels = buffer.getNumChannels();
+    if(ttlTimestampBuffer.size() > lastTTLCalculated && buffer.getNumSamples() + getTimestamp(0) >= ttlTimestampBuffer[lastTTLCalculated+1] + windowSize/2){ // if need to recalc
+        recalc = true;
+    }
+    if(recalc){ // triggered after window time has expirered
+        //process the data
+        processSpikeData(spikeData, ttlTimestampBuffer);
+        
+        //clear the data
+        for(int channelIterator = 0 ; channelIterator < spikeData.size() ; channelIterator++){
+            for(int sortedIdIterator = 0 ; sortedIdIterator < spikeData[channelIterator].size() ; sortedIdIterator++){
+                spikeData[channelIterator][sortedIdIterator].clear();
             }
-            graphs.push_back(graph);
-            graph->setBounds(0, 40*(graphCount), width-20, 40);
-            addAndMakeVisible(graph,true);
-            graphCount += 1;
-    }
-    repaint(); // ideally find better method than this
-}
-
-void EvntTrigAvgDisplay::refresh()
-{
-    for (int i = 0 ; i < graphs.size() ; i++){
-        graphs[i]->repaint();
-    }
-}
-
-int EvntTrigAvgDisplay::getNumGraphs()
-{
-    return graphs.size();
-}
-//--------------------------------------------------------------------
-Timescale::Timescale(int windowSize_, uint64 sampleRate_, int data_, int bin_,int binSize_)
-{
-    windowSize = windowSize_;
-    sampleRate = sampleRate_;
-    data = data_;
-    bin = bin_;
-    binSize = binSize_;
-}
-Timescale::~Timescale()
-{
-    
-}
-
-void Timescale::paint(Graphics& g)
-{
-    g.setColour(Colours::snow);
-    int histogramLen = getWidth()-230;
-    int vertLineLen = 20;
-    int textStart = vertLineLen+5;
-    g.drawHorizontalLine(0, 30, histogramLen+30);
-
-    g.drawVerticalLine(30, 0, vertLineLen);
-    g.drawText(String(-1000.0*float(windowSize/2)/float(sampleRate)) + " ms", 0, textStart, 60, 10, Justification::centred);
-    
-    g.drawVerticalLine(histogramLen/4+30, 0, vertLineLen);
-    g.drawText(String(-1000.0*float(windowSize/2)/2.0/float(sampleRate)) + " ms", histogramLen/4, textStart, 60, 10, Justification::centred);
-    
-    g.drawVerticalLine(histogramLen/2+30, 0, vertLineLen);
-    g.drawText(" 0 ms",histogramLen/2, textStart, 60, 10, Justification::centred);
-    
-    g.drawVerticalLine(3*histogramLen/4+30, 0, vertLineLen);
-    g.drawText(String(1000.0*float(windowSize/2)/2.0/float(sampleRate)) + " ms", 3*histogramLen/4, textStart, 60, 10, Justification::centred);
-    
-    g.drawVerticalLine(histogramLen+30, 0, vertLineLen);
-    g.drawText(String(1000.0*float(windowSize/2)/float(sampleRate)) + " ms", histogramLen, textStart, 60, 10, Justification::centred);
-    
-    g.drawText(String(1000*float(bin*binSize)/float(sampleRate)) + " - " + String(1000*(float(bin+1)*binSize)/float(sampleRate)) + " ms, Spikes: " + String(data),histogramLen+30, 5, getWidth()-(histogramLen+30), getHeight(), Justification::right);
-}
-
-void Timescale::resized()
-{
-    
-}
-
-void Timescale::update(int windowSize_, uint64 sampleRate_)
-{
-    windowSize=windowSize_;
-    sampleRate=sampleRate_;
-}
-
-void inline Timescale::setBin(int bin_)
-{
-    bin = bin_;
-}
-void inline Timescale::setData(int data_)
-{
-    data = data_;
-}
-void inline Timescale::setBinSize(int binSize_)
-{
-    binSize = binSize_;
-}
-
-//--------------------------------------------------------------------
-
-
-GraphUnit::GraphUnit(EvntTrigAvg* processor_, EvntTrigAvgCanvas* canvas_,juce::Colour color_, String name_, float  * stats_,uint64 * data_){
-    ScopedLock myScopedLock(*processor_->getMutex());
-    color = color_;
-    LD = new LabelDisplay(color_,name_);
-    LD->setBounds(0,0,30,40);
-    addAndMakeVisible(LD,false);
-    
-    HG = new HistoGraph(processor_,canvas_,color_,data_[0], stats_[1], &data_[1]);
-    HG->setBounds(30,0,getWidth()-210,40);
-    addAndMakeVisible(HG,false);
-    SD = new StatDisplay(processor_,color_,stats_);
-    SD->setBounds(getWidth()-180,0,180,40);
-    addAndMakeVisible(SD,false);
-}
-GraphUnit::~GraphUnit()
-{
-    deleteAllChildren();
-}
-void GraphUnit::paint(Graphics& g)
-{
-        //g.setOpacity(1);
-}
-void GraphUnit::resized()
-{
-    LD->setBounds(0,0,30,40);
-    SD->setBounds(getWidth()-180,0,180,40);
-    HG->setBounds(30,0,getWidth()-210,40);
-}
-
-//----------------
-
-LabelDisplay::LabelDisplay(juce::Colour color_, String name_)
-{
-    color = color_;
-    name = name_;
-}
-LabelDisplay::~LabelDisplay()
-{
-    
-}
-void LabelDisplay::paint(Graphics& g)
-{
-    g.setColour(color);
-    g.drawText(name,0, 0, 30, 40, juce::Justification::left);
-}
-void LabelDisplay::resized()
-{
-    
-}
-
-//----------------
-
-HistoGraph::HistoGraph(EvntTrigAvg* processor_,EvntTrigAvgCanvas* canvas_, juce::Colour color_, uint64 bins_, float max_, uint64 * histoData_)
-{
-    color = color_;
-    histoData = histoData_;
-    bins = bins_;
-    max = uint64(max_);
-    processor=processor_;
-    canvas = canvas_;
-}
-
-HistoGraph::~HistoGraph()
-{
-    
-}
-
-void HistoGraph::paint(Graphics& g)
-{
-    
-    g.setColour(Colours::snow);
-    g.setOpacity(0.5);
-    g.drawVerticalLine(getWidth()/2,5, getHeight());
-    g.setColour(color);
-    for (int i = 1 ; i < bins ; i++){
-        ScopedLock myScopedLock(*processor->getMutex());
-        if(max!=0){
-            g.drawLine(float(i-1)*float(getWidth())/float(bins),getHeight()-(histoData[i-1]*getHeight()/max),float(i)*float(getWidth())/float(bins),getHeight()-(histoData[i]*getHeight()/max));
         }
-        else
-            g.drawLine(float(i-1)*float(getWidth())/float(bins),getHeight()-(histoData[i-1]*getHeight()),float(i)*float(getWidth())/float(bins),getHeight()-(histoData[i]*getHeight()));
+        //advance the TTL that needs to be calculated
+        lastTTLCalculated+=1;
+        //just recalculated, don't need to again until next ttl window has expired
+        recalc=false;
+        // tell canvas there was a change to the histogram
     }
 }
 
-void HistoGraph::resized()
+void EvntTrigAvg::handleEvent(const EventChannel* eventInfo, const MidiMessage& event, int sampleNum)
 {
-    repaint();
-}
-
-void HistoGraph::select()
-{
-    
-}
-
-void HistoGraph::deselect()
-{
-    
-}
-
-void HistoGraph::clear()
-{
-    
-}
-
-void HistoGraph::mouseMove(const MouseEvent &event)
-{
-    if(bins>0){
-        int posX = event.x;
-        ScopedLock myScopedLock(*processor->getMutex());
-        int valueY = histoData[int(float(posX)/float(getWidth())*float(bins))];
-        canvas->setData(valueY);
-        canvas->setBin(int(float(posX)/float(getWidth())*float(bins))-(bins/2));
-        canvas->repaint();
+    if (triggerEvent < 0) return;
+    else if (eventInfo->getChannelType() == EventChannel::TTL && eventInfo == eventChannelArray[triggerEvent])
+    {// if TTL from right channel
+        TTLEventPtr ttl = TTLEvent::deserializeFromMessage(event, eventInfo);
+        if (ttl->getChannel() == triggerChannel)
+            ttlTimestampBuffer.push_back(Event::getTimestamp(event)); // add timestamp of TTL to buffer
     }
 }
 
-//----------------
-
-StatDisplay::StatDisplay(EvntTrigAvg* processor_, juce::Colour c, float * s)
+void EvntTrigAvg::handleSpike(const SpikeChannel* spikeInfo, const MidiMessage& event, int samplePosition)
 {
-    processor=processor_;
-    color = c;
-    stats = s;
+    SpikeEventPtr newSpike = SpikeEvent::deserializeFromMessage(event, spikeInfo);
+    if (!newSpike)
+        return;
+    else {
+        // extract information from spike
+        
+        const SpikeChannel* chan = newSpike->getChannelInfo();
+        Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo();
+        //int chanIDX = chanInfo[0].channelIDX;
+        int chanIDX = getSpikeChannelIndex(newSpike);
+        int sortedID = newSpike->getSortedID();
+        int electrode = electrodeMap[chanIDX];
+        if(sortedID!=0 && sortedID>idIndex.size()){ // respond to new sortedID
+            idIndex.push_back(spikeData[electrode].size());// update map of what sorted ID is on what electrode
+        }
+            
+        bool newID = true;
+        for(int i = 0 ; i < electrodeSortedId[chanIDX].size() ; i++){
+           if(sortedID == electrodeSortedId[chanIDX][i])
+               newID=false;
+        }
+        if(newID){
+            electrodeSortedId[chanIDX].push_back(sortedID);
+            addNewSortedIdMinMaxMean(electrode,sortedID);
+            addNewSortedIdHistoData(electrode,sortedID); //insert new sortedId into histogramArray
+            spikeData[electrode].resize(spikeData[electrode].size()+1);
+            }
+        
+        int relativeSortedID = 0;
+        if (sortedID>0)
+            relativeSortedID = idIndex[sortedID-1];
+        spikeData[electrode][0].push_back(newSpike->getTimestamp());
+        if (sortedID>0)
+            spikeData[electrode][relativeSortedID].push_back(newSpike->getTimestamp());
+    }
 }
 
-StatDisplay::~StatDisplay()
+void EvntTrigAvg::addNewSortedIdHistoData(int electrode,int sortedId)
+{
+    const ScopedLock myScopedLock(mut);
+    if(electrode == getTotalSpikeChannels()-1){
+        histogramData.add(new uint64[1003]{0});
+        histogramData.getLast()[0]=electrode;//electrode
+        histogramData.getLast()[1]=sortedId;//sortedID
+        histogramData.getLast()[2]=windowSize/binSize;//num bins used
+
+        return;
+    }
+    else{
+        for(int i = 1 ; i < histogramData.size() ; i++){
+            if(histogramData[i][0]>electrode){
+                histogramData.insert(i,new uint64[1003]{0});
+                histogramData[i][0]=electrode;//electrode
+                histogramData[i][1]=sortedId;//sortedID
+                histogramData[i][2]=windowSize/binSize;//num bins used
+                return;
+            }
+        }
+    }
+}
+
+void EvntTrigAvg::addNewSortedIdMinMaxMean(int electrode,int sortedId)
+{
+    const ScopedLock myScopedLock(mut);
+    if(electrode == getTotalSpikeChannels()-1){
+        minMaxMean.add(new float[5]);
+        minMaxMean.getLast()[0]=electrode;//electrode
+        minMaxMean.getLast()[1]=sortedId;//sortedID
+        minMaxMean.getLast()[2]=0;//minimum
+        minMaxMean.getLast()[3]=0;//maximum
+        minMaxMean.getLast()[4]=0;//mean
+        return;
+    }
+    else{
+        for(int i = 1 ; i < histogramData.size() ; i++){
+            if(minMaxMean[i][0]>electrode){
+                minMaxMean.insert(i,new float[5]);
+                minMaxMean[i][0]=electrode;//electrode
+                minMaxMean[i][1]=sortedId;//sortedID
+                minMaxMean[i][2]=0;//minimum
+                minMaxMean[i][3]=0;//maximum
+                minMaxMean[i][4]=0;//mean
+                return;
+            }
+        }
+    }
+}
+
+AudioProcessorEditor* EvntTrigAvg::createEditor()
+{
+    editor = new EvntTrigAvgEditor (this, true);
+    return editor;
+}
+
+float EvntTrigAvg::getSampleRate()
+{
+    return juce::AudioProcessor::getSampleRate();
+}
+
+int EvntTrigAvg::getLastTTLCalculated()
+{
+    return lastTTLCalculated;
+}
+
+/** creates map to convert channelIDX to electrode number */
+std::vector<int> EvntTrigAvg::createElectrodeMap()
+{
+    std::vector<int> map;
+    int numSpikeChannels = getTotalSpikeChannels();
+    int electrodeCounter=0;
+    for (int chanIt = 0 ; chanIt < numSpikeChannels ; chanIt++){
+        const SpikeChannel* chan = getSpikeChannel(chanIt);
+        // add to running count of each electrode
+        map.resize(map.size()+chan->getNumChannels());
+        Array<sourceChannelInfo> chanInfo = chan->getSourceChannelInfo();
+        for (int subChanIt = 0 ; subChanIt < chan->getNumChannels() ; subChanIt++){
+            map[chanInfo[subChanIt].channelIDX]=electrodeCounter;
+        }
+        electrodeCounter+=1;
+    }
+    return map;
+}
+
+std::vector<String> EvntTrigAvg::createElectrodeLabels()
+{
+    std::vector<String> map;
+    int numSpikeChannels = getTotalSpikeChannels();
+    map.resize(numSpikeChannels);
+    String electrodeNames[3]{"Si ","St ","TT "};
+    int electrodeCounter[3]{0};
+    for (int chanIt = 0 ; chanIt < numSpikeChannels ; chanIt++){
+        const SpikeChannel* chan = getSpikeChannel(chanIt);
+        // add to running count of each electrode
+        int chanType = chan->getChannelType();
+        electrodeCounter[chanType]+=1;
+        map[chanIt]=electrodeNames[chanType]+String(electrodeCounter[chanType]);
+    }
+    return map;
+}
+
+/** passes data into createHistogramData() by electrode and sorted ID */
+void EvntTrigAvg::processSpikeData(std::vector<std::vector<std::vector<uint64>>> spikeData,std::vector<uint64> ttlData)
 {
     
+    for (int channelIterator = 0 ; channelIterator < getTotalSpikeChannels() ; channelIterator++){
+        const ScopedLock myScopedLock(mut);
+        for (int sortedIdIterator = 0 ; sortedIdIterator < spikeData[channelIterator].size() ; sortedIdIterator++){
+            uint64* data = createHistogramData(spikeData[channelIterator][sortedIdIterator],ttlData);
+            histogramData[channelIterator+sortedIdIterator][2]=windowSize/binSize;
+            for(int dataIterator = 3 ; dataIterator<windowSize/binSize+3 ; dataIterator++){
+                histogramData[channelIterator+sortedIdIterator][dataIterator] += (data[dataIterator-3]);
+            }
+        minMaxMean[channelIterator+sortedIdIterator][2]= findMin(&histogramData[channelIterator+sortedIdIterator][3]);
+            
+        minMaxMean[channelIterator+sortedIdIterator][3]= findMax(&histogramData[channelIterator+sortedIdIterator][3]);
+            
+        minMaxMean[channelIterator+sortedIdIterator][4] = findMean(&histogramData[channelIterator+sortedIdIterator][3]);
+        }
+    }
 }
 
-void StatDisplay::paint(Graphics& g)
+/** returns bin counts */
+uint64* EvntTrigAvg::createHistogramData(std::vector<uint64> spikeData, std::vector<uint64> ttlData)
 {
-    ScopedLock myScopedLock(*processor->getMutex());
-    g.setColour(color);
-    g.drawText(String(stats[0]),0, 0, 60, 40, juce::Justification::right);
-    g.drawText(String(stats[1]),60, 0, 60, 40, juce::Justification::right);
-    g.drawText(String(stats[2]),120, 0, 60, 40, juce::Justification::right);
+    uint64 numberOfBins = windowSize/binSize;
+    std::vector<uint64> histoData;
+    for(int ttlIterator = 0 ; ttlIterator < ttlData.size() ; ttlIterator++){
+        for(int spikeIterator = 0 ; spikeIterator < spikeData.size() ; spikeIterator++){
+            int relativeSpikeValue = int(spikeData[spikeIterator])-int(ttlData[ttlIterator]);
+            if (relativeSpikeValue >= -int(windowSize)/2 && relativeSpikeValue <= int(windowSize)/2){
+                uint64 bin = binDataPoint(0, numberOfBins, binSize, relativeSpikeValue+windowSize/2);
+                histoData.push_back(bin);
+            }
+        }
+    }
+    return binCount(histoData,numberOfBins);
+}
+
+
+/** Returns the bin a data point belongs to given the very first bin, the very last bin, bin size and the data point to bin, currently only works for positive numbers (can get around by adding minimum value to all values*/
+uint64 EvntTrigAvg::binDataPoint(uint64 startBin, uint64 endBin, uint64 binSize, uint64 dataPoint)
+{
+    uint64 binsInRange = (endBin-startBin);
+    uint64 binsToSearch = binsInRange/2;
+    if (binsToSearch <= 1){
+        
+        if (dataPoint < (startBin+binsToSearch)*binSize){
+            return startBin;
+        }
+        else if (dataPoint < (startBin+1+binsToSearch) * binSize){
+            return startBin+1;
+        }
+        else{
+            return startBin+2;
+        }
     }
 
-void StatDisplay::resized()
+    else if (dataPoint < (startBin+binsToSearch)*binSize){ // if in first half of search range
+        return binDataPoint(startBin,startBin+(binsToSearch),binSize,dataPoint);
+    }
+    else if (dataPoint >= (startBin+binsToSearch) * binSize){ // if in second half of search range
+        return binDataPoint(startBin+(binsToSearch),endBin,binSize,dataPoint);
+    }
+    else{
+        return NULL;
+    }
+}
+
+/** count the number of bin instances */
+uint64* EvntTrigAvg::binCount(std::vector<uint64> binData,uint64 numberOfBins)
 {
-    
+    for (int i = 0 ; i < 1000 ; i++){
+        bins[i]=0;
+    }
+    for (int dataIterator = 0 ; dataIterator < binData.size() ; dataIterator++){
+        bins[binData[dataIterator]] = bins[binData[dataIterator]]+1;
+    }
+    return bins;
+}
+
+uint64 EvntTrigAvg::getBinSize()
+{
+    return binSize;
+}
+
+uint64 EvntTrigAvg::getWindowSize()
+{
+    return windowSize;
+}
+
+Array<uint64 *> EvntTrigAvg::getHistoData()
+{
+    const ScopedLock myScopedLock(mut);
+    return histogramData;
+}
+
+Array<float *> EvntTrigAvg::getMinMaxMean()
+{
+    const ScopedLock myScopedLock(mut);
+    return minMaxMean;
+}
+
+float EvntTrigAvg::findMin(uint64* data_)
+{
+    const ScopedLock myScopedLock(mut);
+    //uint64 min = UINT64_MAX;
+    uint64 min = 18446744073709551614;
+    for (int i = 0 ; i < windowSize/binSize ; i++){
+        if(data_[i]<min){
+            min=data_[i];
+        }
+    }
+    return float(min);
+}
+
+float EvntTrigAvg::findMax(uint64* data_)
+{
+    const ScopedLock myScopedLock(mut);
+    uint64 max = 0;
+    for (int i = 0 ; i < windowSize/binSize ; i++){
+        if(data_[i]>max){
+            max=data_[i];
+        }
+    }
+    return float(max);
+}
+
+float EvntTrigAvg::findMean(uint64* data_)
+{
+    const ScopedLock myScopedLock(mut);
+    uint64 runningSum=0;
+    for(int i=0 ; i < windowSize/binSize ; i++){
+        runningSum += data_[i];
+    }
+    float mean = float(runningSum)/(float(windowSize)/float(binSize));
+    return mean;
 }
 
 
 
+std::vector<String> EvntTrigAvg::getElectrodeLabels()
+{
+    return electrodeLabels;
+}
+
+void EvntTrigAvg::clearHistogramData(uint64 * dataptr)
+{
+    const ScopedLock myScopedLock(mut);
+    for(int i = 0 ; i < 1000 ; i++)
+        dataptr[i] = 0;
+}
