@@ -124,6 +124,10 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
     repaint();
 }
 
+void EvntTrigAvgCanvas::repaintDisplay(){
+    display->repaint();
+}
+
 void EvntTrigAvgCanvas::refresh()
 {
     // called every 10 Hz
@@ -232,7 +236,7 @@ void EvntTrigAvgDisplay::paint(Graphics &g)
             addAndMakeVisible(graph,true);
             graphCount += 1;
     }
-    repaint();
+    repaint(); // ideally find better method than this
 }
 
 void EvntTrigAvgDisplay::refresh()
