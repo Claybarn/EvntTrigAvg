@@ -37,6 +37,7 @@
  
 */
 
+class EvntTrigAvgCanvasHolder;
 class EvntTrigAvgDisplay;
 class Timescale;
 class GraphUnit;
@@ -72,7 +73,7 @@ public:
     EvntTrigAvg* processor;
 
 private:
-    
+
     Array<uint64*> histoData;
     std::vector<std::vector<float>> minMaxMean;
     void removeUnitOrBox();
@@ -87,7 +88,8 @@ private:
     int bin = 0;
     int binSize = 0;
     int data = 0;
-    Timescale* scale;
+    EvntTrigAvgCanvasHolder* holder;
+    ScopedPointer<Timescale> scale;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EvntTrigAvgCanvas);
 
 };
@@ -109,6 +111,7 @@ public:
     void refresh();
     int getNumGraphs();
 private:
+
     EvntTrigAvg* processor;
     EvntTrigAvgCanvas* canvas;
     Viewport* viewport;
@@ -117,7 +120,6 @@ private:
     Array<uint64 *> histoData;
     Array<float *> minMaxMean;
     int border = 20;
-    
 };
 
 //---------------------------
