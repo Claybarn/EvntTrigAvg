@@ -104,6 +104,9 @@ void EvntTrigAvg::initializeHistogramArray()
         histogramData[i][0]=i;//electrode
         histogramData[i][1]=0;//sortedID
         histogramData[i][2]=0;//num bins used
+        for (int data = 3 ; data < 1003 ; data++){
+            histogramData[i][data] = 0;
+        }
     }
 }
 
@@ -170,7 +173,6 @@ void EvntTrigAvg::process(AudioSampleBuffer& buffer)
         lastTTLCalculated+=1;
         //just recalculated, don't need to again until next ttl window has expired
         recalc=false;
-        // tell canvas there was a change to the histogram
     }
 }
 
@@ -279,6 +281,7 @@ void EvntTrigAvg::addNewSortedIdMinMaxMean(int electrode,int sortedId)
     }
 }
 
+//AudioProcessorEditor* EvntTrigAvg::createEditor()
 AudioProcessorEditor* EvntTrigAvg::createEditor()
 {
     editor = new EvntTrigAvgEditor (this, true);
@@ -482,3 +485,39 @@ void EvntTrigAvg::clearHistogramData(uint64 * dataptr)
     for(int i = 0 ; i < 1000 ; i++)
         dataptr[i] = 0;
 }
+
+
+void EvntTrigAvg::saveCustomParametersToXml (XmlElement* parentElement)
+{
+    XmlElement* mainNode = parentElement->createNewChildElement ("EVNTTRIGAVG");
+    mainNode->setAttribute ("trigger", triggerChannel);
+    mainNode->setAttribute ("bin", int(binSize/(getSampleRate()/1000)));
+    mainNode->setAttribute ("window", int(windowSize/(getSampleRate()/1000)));
+}
+
+void EvntTrigAvg::loadCustomParametersFromXml()
+{
+    if (parametersAsXml)
+    {
+        EvntTrigAvgEditor* ed = (EvntTrigAvgEditor*) getEditor();
+        
+        forEachXmlChildElement(*parametersAsXml, mainNode)
+        {
+            if (mainNode->hasTagName("EVNTTRIGAVG"))
+            {
+                triggerChannel = mainNode->getIntAttribute("trigger");
+                std::cout<<"set trigger channel to: " << triggerChannel << "\n";
+                ed->setTrigger(mainNode->getIntAttribute("trigger"));
+                
+                binSize = uint64(mainNode->getIntAttribute("bin"));
+                std::cout<<"set bin size to: " << binSize << "\n";
+                ed->setBin(mainNode->getIntAttribute("bin"));
+                
+                windowSize = uint64(mainNode->getIntAttribute("window"));
+                std::cout<<"set window size to: " << windowSize << "\n";
+                ed->setWindow(mainNode->getIntAttribute("window"));
+            }
+        }
+    }
+}
+
