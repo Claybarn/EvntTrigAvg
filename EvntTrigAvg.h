@@ -67,8 +67,8 @@ public:
     bool disable() override;
 
     /** Creates the EvntTrigAvgEditor. */
+    //AudioProcessorEditor* createEditor() override;
     AudioProcessorEditor* createEditor() override;
-    
    
     float getSampleRate();
     int getLastTTLCalculated();
@@ -94,7 +94,8 @@ public:
     std::vector<int> createElectrodeMap();
     std::vector<String> createElectrodeLabels();
     
-    
+    void saveCustomParametersToXml (XmlElement* parentElement) override;
+    void loadCustomParametersFromXml() override;
 private:
     CriticalSection mut;
     void initializeHistogramArray();
@@ -131,4 +132,3 @@ private:
 
 
 #endif  // __EvntTrigAvg_H_3F920F95__
-
