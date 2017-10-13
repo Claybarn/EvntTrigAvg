@@ -89,7 +89,6 @@ EvntTrigAvgEditor::EvntTrigAvgEditor(GenericProcessor* parentNode, bool useDefau
     windowLabel->setText("Window Size (ms): ",dontSendNotification);
     addAndMakeVisible(windowLabel);
 
-                      
 }
 
 Visualizer* EvntTrigAvgEditor::createNewCanvas()
@@ -126,7 +125,11 @@ void EvntTrigAvgEditor::labelTextChanged(Label* label)
     uint64 bms = bS/(processor->getSampleRate()/1000);
     if (label == binSize){
         if(label->getText().getIntValue() < wms){
-            if(wms/(label->getText().getIntValue()) <= 1000)
+            if(label->getText().getIntValue() == 0){
+                CoreServices::sendStatusMessage("Cannot have 0 bins");
+                label->setText(String(bms),juce::NotificationType::dontSendNotification);
+            }
+            else if(wms/(label->getText().getIntValue()) <= 1000)
                 processor->setParameter(2,label->getText().getIntValue());
             else{
                 CoreServices::sendStatusMessage("Maximum of 1000 bins allowed");
@@ -139,7 +142,10 @@ void EvntTrigAvgEditor::labelTextChanged(Label* label)
         }
     }
     else if (label == windowSize){
-        if(label->getText().getIntValue() > bms){
+        if(label->getText().getIntValue() == 0){
+            CoreServices::sendStatusMessage("Cannot have window size of 0");
+        }
+        else if(label->getText().getIntValue() > bms){
             if(label->getText().getIntValue()/bms<=1000)
                 processor->setParameter(3,label->getText().getIntValue());
             else{
@@ -203,5 +209,18 @@ void EvntTrigAvgEditor::updateSettings()
     triggerChannel->setSelectedId(oldId, sendNotification);
 }
 
+//newValue*(getSampleRate()/1000);
 
 
+void  EvntTrigAvgEditor::setTrigger(int val)
+{
+    triggerChannel->setSelectedId(val+2);
+}
+void EvntTrigAvgEditor::setBin(int val)
+{
+    binSize->setText(String(val),juce::NotificationType::dontSendNotification);
+}
+void  EvntTrigAvgEditor::setWindow(int val)
+{
+    windowSize->setText(String(val),juce::NotificationType::dontSendNotification);
+}
