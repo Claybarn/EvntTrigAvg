@@ -52,6 +52,9 @@ public:
     void sliderEvent(Slider* slider);
     void channelChanged (int chan, bool newState) override;
     void updateSettings();
+    void setTrigger(int val);
+    void setBin(int val);
+    void setWindow(int val);
     Visualizer* createNewCanvas();
     
     EvntTrigAvgCanvas* evntTrigAvgCanvas;
