@@ -45,19 +45,24 @@ EvntTrigAvgCanvas::EvntTrigAvgCanvas(EvntTrigAvg* n) :
     processor = n;
     display = new EvntTrigAvgDisplay(this, viewport, n);
     display->setBounds(0,100,getWidth()-scrollBarThickness, getHeight()-yOffset-40);
+    //removeChildComponent(scale);
     scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,binSize);
+    //holder = new EvntTrigAvgCanvasHolder(processor,processor->getWindowSize(),processor->getSampleRate(),data,bin,binSize);
     viewport->setViewedComponent(display,false);
     addAndMakeVisible(viewport);
     viewport->setBounds(0,100,getWidth(), getHeight()-yOffset-40);
+    //holder->setBounds(0, getHeight(), getWidth(), 40);
     scale->setBounds(0, getHeight()-40, getWidth()-scrollBarThickness, 40);
-    addAndMakeVisible(scale,false);
+    //addAndMakeVisible(scale,false);
+    addAndMakeVisible(scale,true);
     
     update();
 }
 
 EvntTrigAvgCanvas::~EvntTrigAvgCanvas()
 {
-    removeAllChildren();
+    //delete scale;
+    //deleteAllChildren();
 }
 
 void EvntTrigAvgCanvas::beginAnimation()
@@ -112,12 +117,14 @@ void EvntTrigAvgCanvas::paint(Graphics& g)
 
     g.setColour(Colours::snow);
     
-        g.drawText("Electrode",5, 5, width/8, 20, juce::Justification::left);
+    g.drawText("Electrode",5, 5, width/8, 20, juce::Justification::left);
     g.drawText("Trials: " + String(processor->getLastTTLCalculated()),(xOffset+drawWidth)/2-50,5,100,20,Justification::centred);
     g.drawText("Min.", width-180-scrollBarThickness, 5, 60, 20, Justification::right);
     g.drawText("Max", width-120-scrollBarThickness, 5, 60, 20, Justification::right);
     g.drawText("Mean", width-60-scrollBarThickness, 5, 60, 20, Justification::right);
-    removeChildComponent(scale);
+    //delete scale;
+    //scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,processor->getBinSize());
+    //removeChildComponent(scale);
     scale = new Timescale(processor->getWindowSize(),processor->getSampleRate(),data,bin,processor->getBinSize());
     scale->setBounds(0, getHeight()-40, width-scrollBarThickness, 40);
     addAndMakeVisible(scale,true);
@@ -162,7 +169,8 @@ void EvntTrigAvgCanvas::setData(int data_){
     data=data_;
 }
 
-//-----------------------------------------------------------------------------------------------------------------//
+//--------------------------------------------------------------------
+
 
 EvntTrigAvgDisplay::EvntTrigAvgDisplay(EvntTrigAvgCanvas* c, Viewport* v, EvntTrigAvg* p){
     processor=p;
@@ -250,7 +258,9 @@ int EvntTrigAvgDisplay::getNumGraphs()
 {
     return graphs.size();
 }
+
 //--------------------------------------------------------------------
+
 Timescale::Timescale(int windowSize_, uint64 sampleRate_, int data_, int bin_,int binSize_)
 {
     windowSize = windowSize_;
@@ -261,7 +271,7 @@ Timescale::Timescale(int windowSize_, uint64 sampleRate_, int data_, int bin_,in
 }
 Timescale::~Timescale()
 {
-    
+    deleteAllChildren();
 }
 
 void Timescale::paint(Graphics& g)
@@ -287,7 +297,7 @@ void Timescale::paint(Graphics& g)
     g.drawVerticalLine(histogramLen+30, 0, vertLineLen);
     g.drawText(String(1000.0*float(windowSize/2)/float(sampleRate)) + " ms", histogramLen, textStart, 60, 10, Justification::centred);
     
-    g.drawText(String(1000*float(bin*binSize)/float(sampleRate)) + " - " + String(1000*(float(bin+1)*binSize)/float(sampleRate)) + " ms, Spikes: " + String(data),histogramLen+30, 5, getWidth()-(histogramLen+30), getHeight(), Justification::right);
+    g.drawText(String(1000*float(bin*binSize)/float(sampleRate)) + "-" + String(1000*(float(bin+1)*binSize)/float(sampleRate)) + "ms, Spikes: " + String(data),histogramLen+30, 5, getWidth()-(histogramLen+30), getHeight(), Justification::right);
 }
 
 void Timescale::resized()
@@ -355,7 +365,7 @@ LabelDisplay::LabelDisplay(juce::Colour color_, String name_)
 }
 LabelDisplay::~LabelDisplay()
 {
-    
+    deleteAllChildren();
 }
 void LabelDisplay::paint(Graphics& g)
 {
@@ -381,7 +391,7 @@ HistoGraph::HistoGraph(EvntTrigAvg* processor_,EvntTrigAvgCanvas* canvas_, juce:
 
 HistoGraph::~HistoGraph()
 {
-    
+    deleteAllChildren();
 }
 
 void HistoGraph::paint(Graphics& g)
@@ -444,7 +454,7 @@ StatDisplay::StatDisplay(EvntTrigAvg* processor_, juce::Colour c, float * s)
 
 StatDisplay::~StatDisplay()
 {
-    
+    deleteAllChildren();
 }
 
 void StatDisplay::paint(Graphics& g)
@@ -460,6 +470,7 @@ void StatDisplay::resized()
 {
     
 }
+
 
 
 
